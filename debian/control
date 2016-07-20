@@ -1,7 +1,7 @@
 Source: mkusb
 Section: misc
 Priority: optional
-Maintainer: Simon Quigley <tsimonq2@ubuntu.com>
+Maintainer: Nio Wiklund <nio.wiklund@gmail.com>
 Build-Depends: debhelper (>= 9)
 Standards-Version: 3.9.8
 Homepage: https://help.ubuntu.com/community/mkusb
