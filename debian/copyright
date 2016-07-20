@@ -8,7 +8,7 @@ License: GPL-3.0+
 
 Files: debian/*
 Copyright: 2016 Simon Quigley <tsimonq2@ubuntu.com>
-Copyright: 2014 Jörn Schönyan <joern.schoenyan@web.>
+           2014 Jörn Schönyan <joern.schoenyan@wede>
 License: GPL-3.0+
 
 Files: usb-pack_efi*
