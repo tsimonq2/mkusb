@@ -1,5 +1,546 @@
-mkusb (10.6.6-2) unstable; urgency=medium
+mkusb (10.6.6-1ubuntu1) trusty; urgency=medium
 
-  * Initial upload
+  * improved logic to invoke gpt_fix
 
- -- Simon Quigley <tsimonq2@ubuntu.com>  Tue, 24 May 2016 10:54:44 +0200
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Tue, 24 May 2016 10:54:44 +0200
+
+mkusb (10.6.5-1ubuntu1) precise; urgency=medium
+
+  * fix for mkusb and mkusb-nox:
+  * function gpt_zap to clear gpt backup partition table
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Tue, 24 May 2016 05:10:34 +0200
+
+mkusb (10.6.4-1ubuntu1) precise; urgency=medium
+
+  * fixes for mkusb and mkusb-nox:
+  * fix to allow spaces and special characters in path
+  * function gpt_fix
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Fri, 20 May 2016 22:31:15 +0200
+
+mkusb (10.6.3-1ubuntu1) precise; urgency=medium
+
+  * mkusb-nox restore  # simple alternative to mkusb's wipe menu
+  * use 'restore' to create MSDOS partition table and FAT32 file system
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Wed, 13 Apr 2016 17:31:07 +0200
+
+mkusb (10.6.2-1ubuntu4) precise; urgency=medium
+
+  * manual pages: updated for mkusb and revamped for mkusb-nox
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Tue, 12 Apr 2016 09:51:39 +0200
+
+mkusb (10.6.2-1ubuntu3) precise; urgency=medium
+
+  * fix2 for mkusb-nox manual page
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Mon, 11 Apr 2016 22:15:21 +0200
+
+mkusb (10.6.2-1ubuntu2) precise; urgency=medium
+
+  * fix for mkusb-nox manual page
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Mon, 11 Apr 2016 21:55:28 +0200
+
+mkusb (10.6.2-1ubuntu1) precise; urgency=medium
+
+  * xz --robot --list (for robust calculation of uncompressed size)
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Mon, 11 Apr 2016 16:36:49 +0200
+
+mkusb (10.6.1-1ubuntu1) precise; urgency=medium
+
+  * fixes for Xubuntu 16.04 LTS (mounting and unmounting)
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 31 Mar 2016 04:38:49 +0200
+
+mkusb (10.6-1ubuntu1) precise; urgency=low
+
+  * function select_partition_table (gpt or msdos)
+  * GPT - for most computers, can manage huge drives,
+  * MSDOS - can boot many HP computers
+  * 
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Mon, 28 Mar 2016 10:42:35 +0200
+
+mkusb (10.5.1-1ubuntu1) precise; urgency=low
+
+  * persistence for torios-debian
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sat, 06 Feb 2016 20:59:52 +0100
+
+mkusb (10.5-1ubuntu1) precise; urgency=low
+
+  * persistence for debian: boot option, label, config file
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 14 Jan 2016 23:04:58 +0100
+
+mkusb (10.4.6-1ubuntu1) precise; urgency=low
+
+  * when bad password mkusb-start changes title bar
+  * 'mkusb - password' --> 'password: try again!'
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Wed, 06 Jan 2016 22:16:48 +0100
+
+mkusb (10.4.5-1ubuntu1) precise; urgency=low
+
+  * minor bug-fix: cleaning when quitting from function get_percent
+  * shell-script 'restore' skips chmod when running from other system
+  * (not the persitent drive's 'own' live-only boot option)
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sat, 19 Dec 2015 12:16:57 +0100
+
+mkusb (10.4.4-1ubuntu2) precise; urgency=low
+
+  * s[dr]? in file filter to find
+  * mass storage devices sd?
+  * and  optical devices sr?
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Mon, 14 Dec 2015 10:39:01 +0100
+
+mkusb (10.4.4-1ubuntu1) precise; urgency=low
+
+  * mkusb can select block device as input via the menu
+  * sd? in file filter to make it easier
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Mon, 14 Dec 2015 09:54:27 +0100
+
+mkusb (10.4.3-1ubuntu1) precise; urgency=low
+
+  * possible the select any file-name '*' for the source file
+  * Tip: extension  with lower-case letters
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sun, 13 Dec 2015 16:53:11 +0100
+
+mkusb (10.4.2-1ubuntu3) precise; urgency=low
+
+  * version info updated to mkusb-nox (7.5.9.2)
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sat, 05 Dec 2015 17:09:53 +0100
+
+mkusb (10.4.2-1ubuntu2) precise; urgency=low
+
+  * grep -m1 in calculation of infstb (into mkusb-nox too)
+  * new version of the manual mkusb.8.gz 'man mkusb'
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sat, 05 Dec 2015 16:55:37 +0100
+
+mkusb (10.4.2-1ubuntu1) precise; urgency=low
+
+  * grep -m1 in calculation of infstb (drive in fstab and busy)
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Fri, 04 Dec 2015 20:17:03 +0100
+
+mkusb (10.4.1-1ubuntu1) precise; urgency=low
+
+  * minor fix
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Wed, 02 Dec 2015 07:54:13 +0100
+
+mkusb (10.4-1ubuntu1) precise; urgency=low
+
+  * modified method to make persistent live drives
+  * using either data from the source iso file (new)
+  * or data from usb-pack_efi.tar.gz to boot (old)
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sun, 29 Nov 2015 02:09:23 +0100
+
+mkusb (10.3.5-1ubuntu1) precise; urgency=low
+
+  * grub-pc is only installed in BIOS mode, because it interferes with 
+  * grub-efi packages in UEFI mode. This is a temporary fix, because
+  * persistent live drives made in UEFI mode can only boot in UEFI mode.
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 26 Nov 2015 10:35:08 +0100
+
+mkusb (10.3.4-1ubuntu3) precise; urgency=low
+
+  * minor fix (removing temporary file for 'usbdata')
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Wed, 25 Nov 2015 15:20:31 +0100
+
+mkusb (10.3.4-1ubuntu2) precise; urgency=low
+
+  * minor fix
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Tue, 24 Nov 2015 17:27:28 +0100
+
+mkusb (10.3.4-1ubuntu1) precise; urgency=low
+
+  * grub_n_iso: add scripts for backup and restore
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Tue, 24 Nov 2015 14:27:31 +0100
+
+mkusb (10.3.3-1ubuntu2) precise; urgency=low
+
+  * clear_grn: piping via sed 's/^ *//' to remove leading blanks
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Tue, 17 Nov 2015 12:51:39 +0100
+
+mkusb (10.3.3-1ubuntu1) precise; urgency=low
+
+  * fixed bugs when too small space ( < 200 MB ) for persistence
+  * fixed bug with pid confusion (pid at percentage ---> pidf)
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Mon, 16 Nov 2015 19:39:40 +0100
+
+mkusb (10.3.2-1ubuntu1) precise; urgency=low
+
+  * fixed bug for 100% persistence: zero size placeholder
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sat, 14 Nov 2015 01:02:16 +0100
+
+mkusb (10.3.1-1ubuntu2) precise; urgency=low
+
+  * polishing zenity window texts (continued)
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Fri, 13 Nov 2015 11:48:04 +0100
+
+mkusb (10.3.1-1ubuntu1) precise; urgency=low
+
+  * polishing zenity window texts
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 12 Nov 2015 20:31:42 +0100
+
+mkusb (10.3-1ubuntu3) precise; urgency=low
+
+  * mkusb.desktop: Exec=bash -c 'TERM=xterm;/usr/share/mkusb/mkusb-start'
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Wed, 21 Oct 2015 13:12:06 +0200
+
+mkusb (10.3-1ubuntu2) precise; urgency=low
+
+  * minor fix (to compute time used at the end of the script)
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 08 Oct 2015 16:35:43 +0200
+
+mkusb (10.3-1ubuntu1) precise; urgency=low
+
+  * persistent live: memtest in grub menu; GPT with windata partition
+  * with NTFS for data transfer to/from Windows
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Wed, 07 Oct 2015 17:05:38 +0200
+
+mkusb (10.2-1ubuntu1) precise; urgency=low
+
+  * wipe_menu: wipe or wipe and create partition table and file systems
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 17 Sep 2015 15:21:39 +0200
+
+mkusb (10.1.1-1ubuntu2) precise; urgency=low
+
+  * mkusb-start: legacy: tweak xterm to save 5120 lines for ~/mkusb.log
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 10 Sep 2015 12:14:19 +0200
+
+mkusb (10.1.1-1ubuntu1) precise; urgency=low
+
+  * mkusb-console replaced by zenity --progress, ~/mkusb.log plus tweaks
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 10 Sep 2015 09:20:47 +0200
+
+mkusb (10.0.6-1ubuntu1) precise; urgency=low
+
+  * menu_shell: Persistent live selected (minor tweak)
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Mon, 07 Sep 2015 18:53:23 +0200
+
+mkusb (10.0.5-1ubuntu1) precise; urgency=low
+
+  * Bug-fix to make persistent live drive from 15.04 plus minor tweaks
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 03 Sep 2015 13:20:54 +0200
+
+mkusb (10.0.4-1ubuntu1) precise; urgency=low
+
+  * 1. clean the target partitions, 2: check grub-pc for 'persistent live'
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Tue, 01 Sep 2015 13:59:14 +0200
+
+mkusb (10.0.3-1ubuntu1) precise; urgency=low
+
+  * mkusb-st2: smooth login in live sessions
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Fri, 21 Aug 2015 14:55:36 +0200
+
+mkusb (10.0.2-1ubuntu1) precise; urgency=low
+
+  * can create either a live only or persistent live target drive.
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 20 Aug 2015 09:19:43 +0200
+
+mkusb (9.2.3-1ubuntu1) precise; urgency=low
+
+  * look and feel: gentler text, editable background colours
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Mon, 03 Aug 2015 17:23:24 +0200
+
+mkusb (9.2.1-1ubuntu1) precise; urgency=low
+
+  * 1: fix for new html renderer, 2: livedrive=$(df |grep /$|cut -c 5-8)
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Tue, 23 Jun 2015 13:57:55 +0200
+
+mkusb (9.2-1ubuntu1) precise; urgency=low
+
+  * unmounts only usb drives when usbonly and never drives in fstab
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Mon, 22 Jun 2015 12:47:34 +0200
+
+mkusb (9.1.6-1ubuntu5) precise; urgency=low
+
+  * mkusb.svg to /usr/share/icons/hicolor/scalable/apps & /usr/share/icons
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 21 May 2015 17:29:30 +0200
+
+mkusb (9.1.6-1ubuntu4) precise; urgency=low
+
+  * zenity --window-icon="/usr/share/icons/hicolor/48x48/apps/mkusb.png"
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Tue, 19 May 2015 11:31:51 +0200
+
+mkusb (9.1.6-1ubuntu3) precise; urgency=low
+
+  * hard links (sym-links did not work for icon files)
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Mon, 18 May 2015 00:11:33 +0200
+
+mkusb (9.1.6-1ubuntu2) precise; urgency=low
+
+  * two icon files; mkusb.svg and 48x48 sized mkusb.png
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sun, 17 May 2015 23:45:39 +0200
+
+mkusb (9.1.6-1ubuntu1) precise; urgency=low
+
+  * icons located according to standards.freedesktop.org
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sun, 17 May 2015 22:40:13 +0200
+
+mkusb (9.1.5-1ubuntu3) precise; urgency=low
+
+  * updated the manual (man mkusb)
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sat, 04 Apr 2015 10:10:15 +0200
+
+mkusb (9.1.5-1ubuntu2) precise; urgency=low
+
+  * clone a device (typically a CD drive or USB drive)
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sat, 04 Apr 2015 01:08:53 +0200
+
+mkusb (9.1.5-1ubuntu1) precise; urgency=low
+
+  * source=${source##*/} ... to manage path in parameter
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Fri, 03 Apr 2015 18:43:59 +0200
+
+mkusb (9.1.4-1ubuntu2) precise; urgency=low
+
+  * examples added in man mkusb (notice: sudo -H mkusb "path/file.iso")
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sat, 17 Jan 2015 19:08:08 +0100
+
+mkusb (9.1.4-1ubuntu1) precise; urgency=low
+
+  * final text for wipe-whole-device improved
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sun, 07 Dec 2014 21:38:23 +0100
+
+mkusb (9.1.3-1ubuntu1) precise; urgency=low
+
+  * cd to source file directory to keep partition mounted
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sun, 23 Nov 2014 14:09:03 +0100
+
+mkusb (9.1.2-1ubuntu2) precise; urgency=low
+
+  * separate packages for mkusb and mkusb-nox
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Wed, 19 Nov 2014 21:17:59 +0100
+
+mkusb (9.1.2-1ubuntu1) precise; urgency=low
+
+  * "Please wait for sync until 'Done' is written ..."
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Wed, 19 Nov 2014 09:07:05 +0100
+
+mkusb (9.1.1-1ubuntu1) precise; urgency=low
+
+  * zenity --window-icon="/usr/share/icons/mkusb.png"
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Wed, 22 Oct 2014 19:16:10 +0200
+
+mkusb (9.1.0-1ubuntu2) precise; urgency=low
+
+  * Warning and overview - "Select drive in the next window"
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 16 Oct 2014 15:45:49 +0200
+
+mkusb (9.1.0-1ubuntu1) precise; urgency=low
+
+  * Description of work-flow in help menu and man page
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 16 Oct 2014 06:55:34 +0200
+
+mkusb (9.0.8-1ubuntu1) precise; urgency=low
+
+  * minor improvements and bug-fixes
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 09 Oct 2014 18:39:58 +0200
+
+mkusb (9.0.6-1ubuntu2) precise; urgency=low
+
+  * update of the unstable PPA
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Mon, 29 Sep 2014 13:31:36 +0200
+
+mkusb (9.0.6-1ubuntu1) precise; urgency=low
+
+  * Version 9.0.6 is also in the stable PPA; ready for new development
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Mon, 29 Sep 2014 13:25:28 +0200
+
+mkusb (9.0.5-1ubuntu2) precise; urgency=low
+
+  * function sed_mtab: clean mtab
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Fri, 26 Sep 2014 16:27:56 +0200
+
+mkusb (9.0.5-1ubuntu1) precise; urgency=low
+
+  * iso testing: try to unmount partitions except swap (bug-fix)
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 25 Sep 2014 18:52:30 +0200
+
+mkusb (9.0.4-1ubuntu5) precise; urgency=low
+
+  * mkusb-nox tested in Arch and recognizes pacman - ported to mkusb
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Mon, 22 Sep 2014 09:40:51 +0200
+
+mkusb (9.0.4-1ubuntu4) precise; urgency=low
+
+  * improved identification of linux distros ported to mkusb-nox
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sat, 20 Sep 2014 20:29:50 +0200
+
+mkusb (9.0.4-1ubuntu3) precise; urgency=low
+
+  * livedrive recognition for knoppix
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 18 Sep 2014 19:10:22 +0200
+
+mkusb (9.0.4-1ubuntu2) precise; urgency=low
+
+  * tweaks for opensuse (desktop file, manual browsing)
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 18 Sep 2014 16:37:25 +0200
+
+mkusb (9.0.4-1ubuntu1) precise; urgency=low
+
+  * improved identification of linux distros, legacy mode if no html
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Thu, 18 Sep 2014 08:54:33 +0200
+
+mkusb (9.0.3-1ubuntu1) precise; urgency=low
+
+  * 1: fix for zenity window width and height, 2: cleaner exit
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Wed, 10 Sep 2014 13:11:10 +0200
+
+mkusb (9.0.2-1ubuntu6) precise; urgency=low
+
+  * clean rebuilt, updated comments in mkusb
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Tue, 09 Sep 2014 14:26:25 +0200
+
+mkusb (9.0.2-1ubuntu5) precise; urgency=low
+
+  * 1: use_url: added gnome-www-browser, 2: added png icon; both for debian
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Mon, 08 Sep 2014 20:33:27 +0200
+
+mkusb (9.0.2-1ubuntu4) precise; urgency=low
+
+  * 1: zenitytest improved, 2: fix for zenity --list in trusty
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Mon, 08 Sep 2014 11:39:17 +0200
+
+mkusb (9.0.2-1ubuntu3) precise; urgency=low
+
+  * livdrive recognition and skip if diskname matches also for mkusb-nox
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sun, 07 Sep 2014 18:18:51 +0200
+
+mkusb (9.0.2-1ubuntu2) precise; urgency=low
+
+  * skip if iso diskname matches on livedrive
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sun, 07 Sep 2014 13:16:27 +0200
+
+mkusb (9.0.2-1ubuntu1) precise; urgency=low
+
+  * livedrive recognition debugged: grep -m 1
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sun, 07 Sep 2014 11:19:46 +0200
+
+mkusb (9.0.1-1ubuntu1) precise; urgency=low
+
+  * minor bugfixes after testing several precise and trusty flavours
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sat, 06 Sep 2014 20:07:06 +0200
+
+mkusb (9.0-1ubuntu1) precise; urgency=low
+
+  * zenity for all mkusb dialogues; mkusb-nox for text screens
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sat, 06 Sep 2014 11:24:39 +0200
+
+mkusb (8.5.4-1ubuntu2) precise; urgency=low
+
+  * running via the desktop file depends on xterm (not always installed
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sat, 30 Aug 2014 17:26:52 +0200
+
+mkusb (8.5.4-1ubuntu1) precise; urgency=low
+
+  * mkusb restored red warning screen in text mode
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sat, 30 Aug 2014 13:30:33 +0200
+
+mkusb (8.5.3-1ubuntu1) precise; urgency=low
+
+  * mkusb.desktop debian/mkusb.8 debian/control debian/README updated
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Sat, 30 Aug 2014 10:42:08 +0200
+
+mkusb (8.5.3-1) trusty; urgency=medium
+
+  * first upstream release, desktop file and icon added
+
+ -- Nio Wiklund <nio.wiklund@gmail.com>  Fri, 29 Aug 2014 19:52:46 +0200
+
+mkusb (8.5.2-1) trusty; urgency=medium
+
+  [ Jörn Schönyan ]
+  * first proper packaging
+
+  [ Olof Wiklund ]
+  * 
+
+ -- Olof Wiklund <olle@ssd-grund>  Fri, 29 Aug 2014 18:51:07 +0200
+
+mkusb (0.1.1) trusty; urgency=medium
+
+  * changed section to 'misc'
+
+ -- Jörn Schönyan <joern.schoenyan@web.de>  Thu, 14 Aug 2014 21:08:24 +0200
+
+mkusb (0.1) trusty; urgency=medium
+
+  * Initial Release.
+
+ -- Jörn Schönyan <joern.schoenyan@web.de>  Thu, 14 Aug 2014 20:32:07 +0200
