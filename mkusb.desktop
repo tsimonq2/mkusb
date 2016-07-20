@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Categories=Application;System;
+Type=Application
+Name=mkusb
+Comment=Install system to mass storage device, typically USB pendrive
+Exec=bash -c 'TERM=xterm;/usr/share/mkusb/mkusb-start'
+Icon=mkusb
+Terminal=false
+StartupNotify=false

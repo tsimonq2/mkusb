@@ -1,0 +1,40 @@
+Source: mkusb
+Section: misc
+Priority: optional
+Maintainer: Simon Quigley <tsimonq2@ubuntu.com>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.8
+Homepage: https://help.ubuntu.com/community/mkusb
+
+Package: mkusb
+Architecture: all
+Depends: ${misc:Depends}, gdisk, pv, xterm, wmctrl, zenity
+Description: mkusb - tool to create boot drives
+ The mkusb tool was developed to make it simpler and safer to create boot
+ drives with the method to flash or clone an iso image or a compressed image
+ file. It is using dd under the hood. The target is a mass storage device,
+ often but not always a USB drive, sometimes an internal drive or an eSATA drive.
+ Cloning an iso file to a mass storage device makes a boot drive, provided it
+ is a hybrid iso file, post-processed with isohybrid. See man isohybrid. This
+ method with dd has a high success rate. It is particularly good for
+ pre-release testing and new releases, when the standard tools like Unetbootin
+ might not be ready (if the configuration of the booting has been changed
+ since the previous release). mkusb can also create persistent live systems
+ for Ubuntu family iso files with a modified 'grub-n-iso' method.
+
+Package: mkusb-nox
+Architecture: all
+Depends: ${misc:Depends}
+Recommends: pv
+Description: mkusb-nox - tool to create boot drives - No-X-version of mkusb
+ The mkusb tool was developed to make it simpler and safer to create boot
+ drives with the method to flash or clone an iso image or a compressed image
+ file. It is using dd under the hood. The target is a mass storage device,
+ often but not always a USB drive, sometimes an internal drive or an eSATA drive.
+ Cloning an iso file to a mass storage device makes a boot drive, provided it
+ is a hybrid iso file, post-processed with isohybrid. See man isohybrid. This
+ method with dd has a high success rate. It is particularly good for
+ pre-release testing and new releases, when the standard tools like Unetbootin
+ might not be ready (if the configuration of the booting has been changed
+ since the previous release). mkusb can also create persistent live systems
+ for Ubuntu family iso files with a modified 'grub-n-iso' method.

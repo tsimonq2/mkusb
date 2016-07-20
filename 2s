@@ -1,0 +1,40 @@
+#!/bin/bash
+
+target="/media/multimed-2/test/launchpad/mkusbs"
+
+function check_LP {
+
+diff "$1" "$target/$2"
+
+if [ $? -eq 0 ]
+then
+ echo "$1  is already up to date at LP"
+elif [ $? -eq 1 ]
+then
+ echo "Do you want to copy $1? (y/N)"
+ read ans
+ if [ "$ans" == "y" ]
+ then
+  cp -p "$1" "$target/$2"
+  if [ $? -eq 0 ]
+  then
+   echo "$1  is updated at LP"
+  else
+   echo "copying error"
+  fi
+ else
+  echo "$1  is *not* updated at LP"
+ fi
+else
+ echo "error: does $1 exist?, does $2 exist"
+fi 
+}
+
+echo "checking with / copying to  $target"
+echo ""
+check_LP  mkusb
+check_LP  mkusb-nox
+check_LP  mkusb.desktop
+check_LP  mkusb.svg
+check_LP  mkusb.png
+check_LP  debian/mkusb.8 debian

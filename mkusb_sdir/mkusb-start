@@ -1,0 +1,128 @@
+#!/bin/bash
+
+function parser {
+
+# Usage:   parser <input file>
+#
+# Example: parser file.txt (to leave text within
+# <pre>
+# text
+# </pre>
+# without parsing
+# and replaces ANSI inverse video with bold font
+
+old_IFS=$IFS  # save the field separator           
+IFS=$'\n'     # new field separator, the end of line           
+modify=true
+separator="---------------------------------------------------------------------------"
+for line in $(cat "$1")
+do
+ if [ "$line" == "<pre>" ]
+ then
+  echo "$line"
+  modify=false
+ elif [ "$line" == "</pre>" ]
+ then
+  echo "$line"
+  modify=true
+ elif [ "$line" == "$separator" ]
+ then
+  echo "<hr>"
+ elif $modify
+ then
+  line="${line/$'\e'[1;7m /<b>}"
+  line="${line/ $'\e'[0m/</b>}"
+  echo "${line}<br>"
+ else
+  echo "$line"
+ fi
+done
+IFS=$old_IFS  # restore default field separator
+}
+
+########
+# main
+########
+
+if [ "$TERM" == "linux" ]
+then
+ echo 'mkusb-start: Please run a GUI and install zenity or use mkusb-nox! *****'
+ exit
+fi
+
+console="The mkusb console window displays,
+or the file ~/mkusb.log contains:
+output from the engine behind the zenity curtain."
+echo "$console" > ~/mkusb.log
+cd
+
+which zenity > /dev/null
+if [ $? -eq 0 ]
+then
+ rdev=$(df | grep -m1 /$|cut -d ' ' -f1)
+ if [ "$rdev" == "/cow" ] || [ "$rdev" == "aufs" ]
+ then
+  sudo -H mkusb >> ~/mkusb.log
+ else
+  ans=1
+  cnt=0
+  while [ $ans != 0 ] && [ $cnt -lt 3 ]
+  do
+   if [ $cnt -eq 0 ]
+   then
+    stitl='mkusb - password'
+   else
+    stitl='password: try again!'
+   fi
+   zenity --password --title="$stitl" \
+   --window-icon="/usr/share/icons/hicolor/48x48/apps/mkusb.png" \
+   2> /dev/null \
+   | sudo -SH mkusb >> ~/mkusb.log
+   ans=$?
+   cnt=$(($cnt+1))
+   echo "login attempt $cnt" >> ~/mkusb.log
+   sleep 1
+  done
+ fi
+ parser "$HOME/mkusb.log" | uniq | \
+ zenity --text-info --title="mkusb console output logged to '~/mkusb.log'" \
+ --filename="/dev/stdin" \
+ --width=720 --height=480 --html \
+ --window-icon="/usr/share/icons/hicolor/48x48/apps/mkusb.png" 2>/dev/null
+ if [ $? -eq 255 ]
+ then
+  linlim=$(grep saveLines: /etc/X11/app-defaults/XTerm 2>&1 |sed 's/.* //')
+  test $linlim -gt 0
+  if [ $? -eq 0 ] && [ $linlim -lt 5120 ]
+  then
+   zenity --info --text="tweaking xterm to save 5120 lines - enough for ~/mkusb.log" \
+   --window-icon="/usr/share/icons/hicolor/48x48/apps/mkusb.png" 2>/dev/null
+   sudo sed -i 's/saveLines:.*/saveLines: 5120/' /etc/X11/app-defaults/XTerm
+  fi
+  wxh=$(xrandr|grep '*'|sed -e 's/^ *//' -e 's/ .*//')
+  swide=${wxh/x*}
+  shigh=${wxh/*x}
+
+  zleft=$(( ($swide - 740)/2 ))
+  if [ $zleft -lt 0 ]
+  then
+   zleft=0
+  fi
+  ztop=$(( ($shigh - 410)/2 ))
+  if [ $ztop -lt 0 ]
+  then
+   ztop=0
+  fi
+  xterm -hold -geometry 90x24+$zleft+$ztop -fa default -fs 10 -fg black -bg '#ebeceb' \
+  -T "mkusb console output logged to '~/mkusb.log' - middle button to scroll" \
+  -sb -rightbar -e uniq "$HOME/mkusb.log"
+#  zenity --text-info --title="mkusb console output logged to '~/mkusb.log'" \
+#  --filename="$HOME/mkusb.log" \
+#  --width=720 --height=480 \
+#  --window-icon="/usr/share/icons/hicolor/48x48/apps/mkusb.png" 2>/dev/null
+ fi
+else
+ xterm -title 'mkusb cannot run now. Please install zenity or use mkusb-nox!' \
+ -fa default -fs 20 -geometry 40x2+200+200 -hold -bg red -fg yellow \
+ -e echo 'Please install zenity or use mkusb-nox!'
+fi

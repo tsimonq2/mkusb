@@ -1,0 +1,1 @@
+xterm -fa default -fs 12 -geometry 80x8 -e less q.txt &

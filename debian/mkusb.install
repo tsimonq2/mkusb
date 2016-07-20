@@ -1,0 +1,6 @@
+mkusb /usr/sbin/
+mkusb.svg /usr/share/icons/hicolor/scalable/apps
+mkusb.svg /usr/share/icons
+mkusb.png /usr/share/icons/hicolor/48x48/apps
+mkusb.desktop /usr/share/applications
+mkusb_sdir/* /usr/share/mkusb/

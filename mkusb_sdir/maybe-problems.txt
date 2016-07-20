@@ -1,0 +1,55 @@
+\Z1You are trying to install an operating system, which is not \n
+ developed from 'Ubuntu desktop' or 'Debian Jessie'.\n
+There may be problems\Zn
+\Z7_________________________________________\Zn
+<hr>\n
+\Z4Test results with mk-grub-n-iso-s\Zn\n
+\Z7_________________________________________\Zn\n
+\n
+Boot alternatives in the grub menu:\n
+\n
+- persistent live\n
+- live\n
+- recovery mode\n
+
+\Z7-------------------------------------------------------------------\Zn\n
+\Z4The following Ubuntu [based] distros are tested and work\Zn\n
+\Z7-------------------------------------------------------------------\Zn\n
+ubuntu-12.04.x-desktop-i386.iso "precise"\n
+ubuntu-14.04.x-desktop-amd64.iso "trusty"\n
+xenial-desktop-amd64.iso ...\n
+the whole Ubuntu family's desktop iso files\n
+Kubuntu, Lubuntu, standard Ubuntu, Xubuntu, ...\n
+\n
+bento-trusty-rc2-i386.iso\n
+bodhi-2.4.0-64.iso\n
+extix-14.2-64bit-isoh-persistent-836mb-141024.iso\n
+linuxmint-17.2-cinnamon-64bit.iso\n
+lxle-12044-32.iso (not isohybrid)\n
+ToriOS-beta.iso (based on Ubuntu 12.04 i386)\n
+
+\Z7-------------------------------------------------------------------\Zn\n
+\Z4The following Debian [based] distros are tested and work\Zn\n
+\Z7-------------------------------------------------------------------\Zn\n
+debian-live-8.0.0-i386-gnome-desktop.iso  "Debian Jessie 32-bit"\n
+debian-live-8.2.0-amd64-gnome-desktop.iso "Debian Jessie 64-bit"\n
+
+\Z7---------------------------------------------------------\Zn\n
+\Z4The following distros boot but persistence fails\Zn\n
+\Z7---------------------------------------------------------\Zn\n
+The computer boots but cannot get persistence. Look for advice at Debian web pages, if you want persistence with Debian [based] distros.\n
+\n
+obi_Trusty-nonpae-txt5-9w.iso (based on Debian Wheezy)\n
+
+\Z7---------------------------------------------------\Zn\n
+\Z4Complete failure\Zn\n
+\Z7---------------------------------------------------\Zn\n
+No Ubuntu/Debian based distro has failed completely, but for example Mageia does not work at all. The boot structure is not recognized. You must edit the file 'boot/grub/grub.cfg' in the third partition.\n
+\n
+Mageia-4.1-LiveDVD-GNOME-x86_64-DVD.iso\n
+
+\Z7-------------------------------------------------------------------\Zn\n
+\Z4Cloning / copying / flashing\Zn\n
+\Z7-------------------------------------------------------------------\Zn\n
+You are cloning when you install a 'live-only' system with mkusb. This makes a working live system of most operating systems. "
+

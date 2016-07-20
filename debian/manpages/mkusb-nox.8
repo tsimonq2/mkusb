@@ -1,0 +1,209 @@
+.TH mkusb-nox 8 "April 13, 2016" "7.5.9.4 (mkusb 10.6.3)" "MaKe USB boot device"
+
+.SH NAME
+mkusb, mkusb-nox - MaKe USB boot device
+
+.SH SYNOPSIS
+.B mkusb-nox
+<input> [second parameter]
+
+.B mkusb-nox
+[-option]
+
+input - source file or token for wiping - mandatory input for
+.B mkusb-nox
+
+The only optional second parameter 'all' should be entered after the input file.
+
+.B mkusb
+[input] [optional parameters]
+
+.B mkusb
+[-option]
+
+input - source file or token for wiping
+
+Optional parameters 'all' or 'p' or both should be entered after the input file.
+
+Without any parameter,
+.B mkusb
+will let you select the input file interactively via menus.
+.PP
+The target device is always selected and or confirmed interactively.
+
+.SH DESCRIPTION
+.B mkusb and mkusb-nox
+- MaKe USB boot device (No X alias text mode) - are
+.B bash shell-scripts
+that can make a boot device from a source file and a mass storage device, 
+typically a USB pendrive. Hybrid iso files (post-processed with 
+isohybrid) or image files from working systems should be used. 
+Current Ubuntu iso files work (except Ubuntu 12.04 mini.iso).
+.PP
+.B mkusb-nox
+- is a bash shell-script that works in text screens (and terminal windows),
+and can run in a bash shell without any extra package. The interface is
+very simple, but this version can do what the GUI version mkusb can do (except
+persistent live drives and restoring file systems). The only 'advanced
+features' are ANSI control sequences for inverse video, but the script will
+work also without interpretation of ANSI inverse video.
+
+.PP
+mkusb-nox reads input from the following source file types
+.PP
+- ISO files (CD/DVD image files), 'file.iso'
+.PP
+- general image files, 'file.img'
+.PP
+- xz compressed image files, 'file.img.xz'
+.PP
+- gzip compressed image files, 'file.img.gz'
+.PP
+and writes to a mass storage device,
+.B cloning
+with 
+.B dd
+under the hood. mkusb-nox makes the process safer by supplying an
+.B interactive tool
+to select the target device.
+.PP
+Beyond standard linux commands and programs, mkusb-nox
+.PP
+- wants
+.B pv
+to view the progress, but does not need it.
+.PP
+mkusb-nox and mkusb are described at the following
+.B wiki page
+.PP
+<https://help.ubuntu.com/community/mkusb>
+
+.SH OPTIONS
+.B [input]
+.TP 4
+.B file.ext
+mkusb-nox is sensitive to the file extension. Valid extensions
+are 'iso', 'img', 'img.xz', 'img.gz'
+.TP 4
+.B /dev/xxx
+mkusb-nox can clone from a block device when specified as a parameter in the
+command line. The device '/dev/sr0' is often pointing to the CD/DVD drive
+in Ubuntu, but check it and point to the relevant device.
+.TP 4
+.B wipe-1
+mkusb-nox uses the token to wipe the first megabyte (actually 
+first mibibyte) of the target device to wipe traces that 
+can disturb the function.
+.TP 4
+.B wipe-whole-device
+mkusb-nox uses the token to wipe the whole device (using dd).
+There are several better tools to wipe a device, e.g. DBAN
+and hdparm.
+.TP 4
+.B restore
+mkusb-nox uses the token to restore the device to a standard storage device
+with an MSDOS partition table and a partition with a FAT32 file system.
+.TP 4
+.B [optional parameters]
+Optional parameters are entered at the end of the command line
+.TP 4
+.B all
+causes the selector to display all mass storage devices. The default is
+to display only USB mass storage devices. This can be toggled
+interactively, "toggle USB-only".
+.TP 4
+.B [-option]
+.TP 4
+.B -h
+Print a summary of command line options and exit.
+.TP 4
+.B -v
+Print the current version and exit.
+
+.SH EXAMPLES
+
+.TP 4
+.B Make a USB install device from ISO or image file
+.br
+sudo mkusb-nox file.iso
+.br
+sudo -H mkusb file.iso p    # install a persistent live system
+.br
+sudo mkusb-nox "quote file name (1) with special characters.iso"
+.br
+sudo mkusb-nox path/file.iso
+.br
+sudo mkusb-nox file.img
+.br
+sudo mkusb-nox file.img.gz
+.br
+sudo mkusb-nox file.img.xz
+.TP 4
+.B Install from 'file.img.xz', show all mass storage devices
+.br
+sudo mkusb-nox file.img.xz all
+.TP 4
+.B Clone a device (typically a CD/DVD drive or USB drive)
+.br
+sudo mkusb-nox /dev/sr0    # example of CD drive
+.TP 4
+.B Wipe the USB device (may take long time)
+.br
+sudo mkusb-nox wipe-whole-device
+.TP 4
+.B Wipe the first megabyte (MibiByte), show only USB devices
+.br
+sudo mkusb-nox wipe-1
+.TP 4
+.B Restore to a storage device
+.br
+sudo mkusb-nox restore  # FAT32 file system
+.br
+sudo -H mkusb wipe    # wipe menu (select suitable file systems)
+.TP 4
+.B Wipe the first megabyte, show all mass storage devices
+.br
+sudo mkusb-nox wipe-1 all
+.TP 4
+.B Help and Version
+.br
+mkusb-nox -h
+.br
+mkusb-nox -v
+
+.SH AUTHOR
+mkusb-nox was written by Nio Wiklund <nio.wiklund at gmail.com>
+.PP
+This manual page was written by Nio Wiklund <nio.wiklund at gmail.com>
+
+.SH THANKS
+
+Special thanks for help with features, testing and packaging to
+Dale Beaudoin,
+Israel Dahl,
+Paul Girault,
+Kshipra Gurunandan,
+Rafael Laguna,
+Federico Leoni,
+Cyrille Mattiuzzo,
+Wirawan Purwanto,
+Andre Rodovalho,
+Joern Schoenyan,
+Jack Trice,
+Phill Whiteside.
+
+.SH REPORTING BUGS
+Report bugs to the author via mail.
+.PP
+When reporting bugs, please include a screenshot or cut and pasted text
+from the dialogue preceding the failing event.
+
+.SH COPYRIGHT
+Copyright 2014,2015,2016 Nio Wiklund
+.PP
+GPLv3: GNU GPL version 3
+<http://gnu.org/licenses/gpl.html>.
+.PP
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+

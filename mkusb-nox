@@ -1,0 +1,1213 @@
+#! /bin/bash
+#
+# Copyright 2014 Nio Wiklund
+#
+# GPLv3: GNU GPL version 3
+# <http://gnu.org/licenses/gpl.html>.
+#
+# This is free software: you are free to change and redistribute it.
+# There is NO WARRANTY, to the extent permitted by law.
+#-----------------------------------------------------------------------------
+# author sudodus alias nio-wiklund at launchpad
+#
+# date        editor   comment
+# 2013-06-25  sudodus  linux installer from tarball of installed system
+# 2013-06-27  sudodus  raring.tar.gz
+# 2013-08-09  sudodus  removed lame logic for wipe as alternative to install
+# 2013-09-22  sudodus  mktst selector introduced in mkusb
+# 2013-09-24  sudodus  help text managed also for text screen
+# 2013-09-26  sudodus  mktst selector tweaked for mkusb
+# 2013-09-26  sudodus  mkusb cleaned, version 4.0
+# 2013-11-17  sudodus  not only check also offer installation of pv
+# 2013-11-22  sudodus  mkusb version 5.0
+# 2014-01-06  sudodus  mkusb version 6.0 calls to sudo removed
+# 2014-01-29  sudodus  identification of 'livedrive' fixed for live session
+# 2014-01-29  sudodus  mkusb version 7.0
+# 2014-01-30  sudodus  more livedrive fixes: CD, cloned iso, grub-n-iso,
+#                      unetbootin, usb-creator-gtk
+# 2014-01-30  sudodus  mkusb version 7.1
+# 2014-03-06  sudodus  fix to recognize debian iso file and work from CD
+# 2014-03-06  sudodus  mkusb version 7.2
+# 2014-03-09  sudodus  second parameter 'all' to start seeing all drives
+#                      usbonly=false
+# 2014-03-09  sudodus  mkusb version 7.3
+# 2014-03-13  sudodus  switch for help window
+# 2014-03-14  sudodus  writing "Done" after installation (for xterm -hold) 
+# 2014-03-14  sudodus  mkusb version 7.4
+#
+# 2014-08-01  sudodus  *** forking to mkusb-nox (alias version 7.5) ***
+# 2014-08-02  sudodus  adding uncompressed image files for input (file.img)
+# 2014-08-02  sudodus  function list_drives instead of parted and fdisk
+# 2014-08-02  sudodus  function mkcmd_runcmd to improve iso identification
+# 2014-08-02  sudodus  FINAL WARNING with inverse video added
+# 2014-08-02  sudodus  help text removed, assuming advanced users
+# 2014-08-02  sudodus  new usage text (from mkusb -h)
+# 2014-08-02  sudodus  mkusb version 7.5
+# 2014-09-07  sudodus  livedrive recognition debugged: grep -m 1 ...
+# 2014-09-07  sudodus  skip if iso diskname matches on livedrive
+# 2014-09-07  sudodus  mkusb version 7.5.1
+# 2014-09-12  sudodus  livedrive recognition for mageia
+# 2014-09-07  sudodus  mkusb version 7.5.2
+# 2014-09-18  sudodus  livedrive recognition for knoppix
+# 2014-09-18  sudodus  bugfix for diskname (from mkusb)
+# 2014-09-18  sudodus  mkusb version 7.5.3
+# 2014-09-20  sudodus  find_installer: finds and selects apt-get yum zypper urpmi
+# 2014-09-25  sudodus  when identifying if iso testing: try to unmount partitions
+#                      except swap partitions, and consider drives with an active
+#                      swap partition busy, 'variable bizz'
+# 2014-09-25  sudodus  function same_iso: separated from the main program
+# 2014-09-25  sudodus  mkusb version 7.5.4
+# 2014-11-19  sudodus  "Please wait for sync (flushing file system buffers
+#                      to the device) until 'Done' is written ..."
+# 2014-11-19  sudodus  mkusb version 7.5.5
+# 2014-11-22  sudodus  cd to source file directory to keep partition mounted
+# 2014-11-22  sudodus  mkusb version 7.5.6
+# 2014-12-07  sudodus  final text for wipe-whole-device improved
+# 2014-12-07  sudodus  mkusb version 7.5.7
+# 2015-04-03  sudodus  current directory changed to that of the source file, so
+#                      source=${source##*/} ... to manage path in parameter
+# 2015-04-03  sudodus  clone a device (typically a CD drive or USB drive)
+# 2015-04-03  sudodus  mkusb version 7.5.8
+# 2015-06-21  sudodus  tries to unmount only usb drives when usbonly
+#                      and does not try to unmount drives in fstab
+# 2015-06-22  sudodus  livedrive=$(df |grep /$|cut -c 5-8)
+# 2015-06-22  sudodus  mkusb version 7.5.9 <---> 9.2.1 GUI version
+# 2015-08-01  sudodus  FINAL WARNING --> Final checkpoint
+# 2015-08-01  sudodus  Do you really ... --> Please check ...
+# 2015-08-01  sudodus  mkusb version 7.5.9.1 <---> 9.2.2 GUI version
+# 2015-12-05  sudodus  grep -m1 in calculation of infstb (drive in fstab and busy)
+# 2015-12-05  sudodus  mkusb version 7.5.9.2 <---> 10.4.2 GUI version
+# 2016-04-11  sudodus  xz --robot --list
+# 2016-04-11  sudodus  mkusb version 7.5.9.3 <---> 10.6.2 GUI version
+# 2016-04-13  sudodus  mk_msdos to restore to a storage device
+# 2016-04-13  sudodus  mkusb version 7.5.9.4 <---> 10.6.3 GUI version
+# 2016-05-20  sudodus  fix to allow spaces and special characters in path
+# 2016-05-20  sudodus  function gpt_fix
+# 2016-05-20  sudodus  offer installation of gdisk (for gpt_fix)
+# 2016-05-20  sudodus  mkusb version 7.5.9.5 <---> 10.6.4 GUI version
+# 2016-05-24  sudodus  function gpt_zap
+# 2016-05-24  sudodus  mkusb version 7.5.9.6 <---> 10.6.5 GUI version
+# 2016-05-24  sudodus  improved logic to invoke gpt_fix
+# 2016-05-24  sudodus  mkusb version 7.5.9.7 <---> 10.6.6 GUI version
+
+
+version="7.5.9.7 <---> 10.6.6 GUI version"
+
+usbonly=true
+startdir="$PWD"
+declare -a inst_prog=( "" "" )
+warnstr=
+quitstr=
+inversvid="\0033[7m"
+resetvid="\0033[0m"
+
+#-----------------------------------------------------------------------------
+
+function list_drives {
+
+# parameter $1 for usbonly (true/false)
+
+cnt1=0
+cnt2=0
+
+tmpfil=$(mktemp)
+ls -l /dev/disk/by-id| grep [a-z]$|tr -s ' ' ' '|cut -d ' ' -f 9,11 \
+|sort -k2|grep -e \^a -e \^u|sed 's#../..#/dev#' > "$tmpfil"
+
+#cat "$tmpfil"
+
+while read name device
+do
+ cnt1=$(($cnt1 + 1))
+ nam1[$cnt1]="${name%_*}"
+nam1[$cnt1]=${nam1[$cnt1]:0:36}
+ dev1[$cnt1]="$device"
+# /bin/echo -e "${nam1[$cnt1]}\0011${dev1[$cnt1]}"
+done < "$tmpfil"
+
+lsblk -db|grep disk|tr -s ' ' ' '| cut -d ' ' -f1-4 |sort > "$tmpfil"
+
+while read device dum1 dum2 bytesize
+do
+ cnt2=$(($cnt2 + 1))
+ dev2[cnt2]="$device"
+ mbsize=$((($bytesize+500000)/1000000))
+ gbsize=$((($bytesize+500000000)/1000000000))
+ if [ $mbsize -lt 32000 ]
+ then
+  prsize[$cnt2]="${mbsize}MB"
+ else
+  prsize[$cnt2]="${gbsize}GB"
+ fi
+ device[$cnt2]="/dev/$device"
+# echo "${device[$cnt2]}" "${prsize[$cnt2]}"
+done < "$tmpfil"
+
+rm "$tmpfil"
+
+if [ $cnt1 -ge $cnt2 ]
+then
+ count=$cnt1
+else
+ count=$cnt2
+fi
+strsize=0
+for (( i=1; i<=$count ; i++ ))
+do
+ if [ ${#nam1[$i]} -gt $strsize ]
+ then
+  strsize=${#nam1[$i]}
+ fi
+done
+#echo $strsize
+for (( i=1; i<=$count ; i++ ))
+do
+ addsize=$(($strsize - ${#nam1[$i]}))
+ blank='                                                    '
+ spacer=${blank:0:$addsize}
+# echo $addsize
+# echo "xxx${blank:0:$addsize}xxx"
+
+ printsize=
+ for (( j=1; j<=$count ; j++ ))
+ do
+#  echo "${dev1[$i]} ?==?  /dev/${dev2[$j]}"
+  if [ "${dev1[$i]}" ==  "/dev/${dev2[$j]}" ]
+  then
+   printsize="${prsize[$j]}"
+#   echo "printsize=$printsize"
+  fi
+ done
+
+ if [ "$printsize" != "" ]
+ then
+  string="Name: ${nam1[$i]}${spacer}  Dev: ${dev1[$i]}  Size: $printsize"
+  if [ "$1" == "true" ]
+  then
+   usbstring="${string/Name\:\ usb\-/USB: }"
+   if [ "$usbstring" != "$string" ]
+   then
+    /bin/echo -e "$usbstring"
+   fi
+  else
+    /bin/echo -e "$string"
+  fi
+ fi
+done
+}
+
+# ---------------------------------------------------------------------
+
+function find_installer {
+
+which apt-get > /dev/null 2>&1
+if [ $? -eq 0 ];then
+ which pv > /dev/null 2>&1
+ if [ $? -ne 0 ];then
+  echo "pv needs the 'universe' repository"
+ fi
+ inst_prog[1]="apt-get"
+ inst_prog[2]="install"
+else
+ which yum > /dev/null 2>&1
+ if [ $? -eq 0 ];then
+  inst_prog[1]="yum"
+  inst_prog[2]="install"
+ else
+  which zypper > /dev/null 2>&1
+  if [ $? -eq 0 ];then
+   inst_prog[1]="zypper"
+   inst_prog[2]="install"
+  else
+   which urpmi > /dev/null 2>&1
+   if [ $? -eq 0 ];then
+    inst_prog[1]="urpmi"
+    inst_prog[2]=""
+   else
+    which pacman > /dev/null 2>&1
+    if [ $? -eq 0 ];then
+     which pv > /dev/null 2>&1
+     if [ $? -ne 0 ];then
+      echo "pv needs the 'community' repository"
+     fi
+     inst_prog[1]="pacman"
+     inst_prog[2]="-S"
+    fi
+   fi
+  fi
+ fi
+fi
+if [ "${inst_prog[1]}" == "" ];then
+ echo " "
+ echo "Cannot install $2"
+ echo "None of 'apt-get' 'yum' 'zypper' 'urpmi' 'pacman' was found"
+ echo "Try manually to install $2"
+ echo " "
+ read -t 3
+fi
+}
+
+# ---------------------------------------------------------------------
+
+function mkcmd_runcmd {
+
+# 6 parameters:
+#        mkcmd_runcmd "$1" "$source" "$system" "$cnt" "$doing_this" "$result"
+#echo In mkcmd_runcmd "$1" "$source" "$system" "$cnt" "$doing_this" "$result"
+
+# make command and run command, 'here we go'
+
+ LANG=C
+
+ if [ "$target" == "" ]
+ then
+  echo "No target"
+  exit
+ elif [ "$source" == "" ]
+ then
+  echo "No source"
+  exit
+ elif [ "$1" == "restore" ]
+ then
+  swapoff "$target"* 2>/dev/null
+  sync
+  doing_this="Restoring $target to a storage device ... :"
+#  LANG="$curlang"
+  gpt_zap "$target"
+  mk_msdos "$target"
+  part_info "$target"
+#  LANG=C
+  if [ $? -eq 0 ]
+  then
+   result="Done :-)"
+  else
+   result="Failed :-("
+  fi
+  exit
+ else
+  swapoff "$target"* 2>/dev/null
+  sync
+
+# the command line is implemented 
+
+  echo " "
+
+# build target and write 'a first line' to the terminal ...
+
+  if [ "$1" == "wipe-whole-device" ] || [ "$1" == "/dev/zero" ]
+  then
+   doing_this="Wiping the whole device $target ..."
+  elif [ "$1" == "wipe-1" ] || [ "$1" == "wipe1" ]
+  then
+   doing_this="Wiping the first megabyte (MibiByte) of $target ... :"
+  else
+   doing_this="Installing $1 to $target ..."
+  fi
+  echo "$doing_this"
+  echo " "  
+
+# build beginning of command (read the source) and calculate size
+
+# current directory changed to that of the source file, so
+
+  if test -f "$source"
+  then
+   source=${source##*/}
+   ii="${1##*/}"
+  else
+   ii="$1"  
+  fi
+#  echo "source=$source"
+#  echo "ii=$ii"
+
+  if [ "${source%/*}" == "/dev" ]
+  then
+   readsrc="< $source"
+   size=
+  elif [ "$source" == "$ii" ]
+  then
+
+# double quotes makes source file name work with some special characters
+
+   source=\""$source"\"
+
+   if [ "${ii%.iso}" != "$ii" ] || [ "${ii%.img}" != "$ii" ]
+   then
+    size=$(wc -c "$ii"|cut -d ' ' -f 1)
+    readsrc="< $source"
+   elif [ "${ii%.img.[gx]z}" != "$ii" ]
+   then
+    if [ "${ii%.img.gz}.img.gz" == "$ii" ]
+    then
+     size=$(gzip -l "$ii"|grep "${ii/.gz}"|tr -s ' ' ' '|sed s/^\ //|cut -d ' ' -f 2)
+     readsrc="zcat $source |"
+    else
+#     si10=$(xz -l "$ii"|grep "${ii/.xz}"|tr -s ' ' ' '|sed s/^\ //| \
+#            cut -d ' ' -f 5|sed 's/\.//')
+#     sitr=$(((${si10}+5)/10))
+#     powr=$(xz -l "$ii"|grep "${ii/.xz}"|tr -s ' ' ' '|sed s/^\ //| \
+#            cut -d ' ' -f 6|sed -e s/..$//)
+#     size=$sitr$powr
+     size=$(xz --robot --list "$ii" | tail -n1 | cut -f5)
+     readsrc="xzcat $source |"
+    fi
+   fi
+   size="-s ${size,,}"
+  else
+   readsrc="< $source"
+   size=
+  fi
+
+# build pvpipe (if available)
+
+  if $pvplug
+  then
+   pvpipe="pv $size |"
+  else
+   pvpipe=
+  fi
+
+#  echo "\$1=$1"
+#  echo "source=$source"
+#  echo "target=$target"
+#  echo "bs=$bs"
+#  echo "cnt=$cnt"
+#  echo "pvplug=$pvplug"
+#  echo "size=$size"
+#  echo "pvpipe=$pvpipe"
+#  echo "readsrc=$readsrc"
+
+  cmdfile=$(mktemp)
+
+  cmdline="$readsrc $pvpipe dd bs=$bs $cnt of=$target"
+
+  gpt_zap "$target"
+
+  echo "$cmdline"|tee $cmdfile
+  echo "Please wait for sync (flushing file system buffers to the device)"
+  echo "until 'Done' is written ..."
+  bash $cmdfile
+  if [ $? -eq 0 ]
+  then
+   if [ "${1/.iso}.iso" != "$1" ]
+   then
+    gpt_fix "$target"
+   fi
+   result="Done :-)"
+  elif [ "$1" == "wipe-whole-device" ]
+  then
+   result="Done, but you should also
+check for the line 'dd: writing '$target': No space left on device',
+which means that the whole device is wiped. (Look a few lines above ^) "
+  else
+   result="Failed :-("
+  fi
+  echo "Syncing the device ..."
+  rm $cmdfile
+  sync
+  echo "$result"
+ fi
+
+ LANG="$curlang"
+}
+#-----------------------------------------------------------------------------
+
+function mk_msdos {
+
+# make an MSDOS partition table and a FAT32 file system
+
+target="$1"
+read -p "Enter label for the partition (max 11 *standard* ascii characters) " label1
+label1="${label1:0:11}"
+label1="${label1^^}"
+#echo "Label (name) for the FAT32 partition: $label1"
+
+echo "Trying to unmount partitions if mounted on the target device"
+umount "$target"*
+df | grep "$target"
+if [ $? -eq 0 ]
+then
+ echo "mk_msdos: could not unmount a partition on the target device"
+ exit
+fi
+echo "------------------------------------------------------------"
+dd if=/dev/zero of="$target" bs=1024 count=1024 2>&1
+parted -s "$target" mklabel msdos
+sleep 0.5
+parted -s "$target" mkpart primary 1048576b 100%
+sleep 0.5
+parted -s "$target" set 1 boot on  # set boot flag on partition 1
+sleep 0.5
+mkfs.vfat -v -F 32 -n "$label1" "${target}1"
+if [ $? -eq 0 ]
+then
+ success=true
+else
+ success=false
+fi
+sleep 0.5
+sync
+if $success
+then
+ /bin/echo -e "$inversvid created MSDOS partition table and FAT file system $resetvid"
+else
+ /bin/echo -e "$inversvid mk_msdos: could not create MSDOS partition table and FAT file system $resetvid"
+fi
+}
+#-----------------------------------------------------------------------------
+
+function part_info {
+
+target=$1
+sync
+sleep 0.5
+blkid -c /dev/null "${target}?" > /dev/null
+sleep 0.5
+partinfo=$(parted -s "$target" print; \
+echo " "; \
+lsblk -o MODEL,NAME,FSTYPE,LABEL "$target")
+
+echo "$partinfo"
+}
+#-----------------------------------------------------------------------------
+
+function mktst {
+
+# select target drive, make command and run command
+
+echo "***  Unmount the device if mounted  ****************************"
+echo " "
+
+ltest0=$(grep -m 1 " / " /etc/mtab|cut -d ' ' -f 1)
+if [ "$ltest0" == "/cow" ] || [ "$ltest0" == "aufs" ] || [ "$ltest0" == "rootfs" ]
+then
+ ltest1=$(grep -m 1 ' /isodevice' /etc/mtab|cut -c 5-8)
+ if [ "$ltest1" != "" ]
+ then
+  livedrive=$ltest1
+ else
+  ltest1=$(grep -m 1 ' /cdrom' /etc/mtab|cut -c 5-8)
+  if [ "$ltest1" != "" ]
+  then
+   livedrive=$ltest1
+  else
+   ltest1=$(grep -m 1 ' /livecd' /etc/mtab|cut -c 5-8)
+   if [ "$ltest1" != "" ]
+   then
+    livedrive=$ltest1
+   else
+    ltest1=$(grep -m 1 ' iso9660' /etc/mtab|grep -v ' /media'|grep -v ' /mnt'|cut -c 5-8)
+    if [ "$ltest1" != "" ]
+    then
+     livedrive=$ltest1
+    else
+     ltest1=$(grep -m 1 ' iso9660' /etc/mtab|grep ' /mnt-system'|cut -c 5-8)  # knoppix
+     if [ "$ltest1" != "" ]
+     then
+      livedrive=$ltest1
+     else
+      livedrive=$(df 2>/dev/null|grep -m 1 " /$" |cut -c 5-8)  # mageia
+      if [ "$ltest1" != "" ] && test -b "/dev$ltest1"
+      then
+       livedrive=$ltest1
+      else
+       ltest1=$(lvm pvdisplay|grep 'PV Name'|sed 's/.* //'|cut -c 5-8)  # fedora
+       ltest2=$(df 2>/dev/null|grep -m 1 " /$" |sed 's/ .*//')
+       if [ "$ltest1" != "" ] && [ "$ltest2" == "/dev/mapper/fedora-root" ]
+       then
+        livedrive=$ltest1
+        if ! test -b "/dev$livedrive"
+        then
+         livedrive="not_found"
+        fi
+       fi
+      fi
+     fi
+    fi
+   fi
+  fi
+ fi
+elif [ "${ltest0/\/dev\/[^f]d}" != "" ]
+then
+ livedrive=$(df 2>/dev/null|grep -m 1 /$ |cut -c 5-8)
+else
+ livedrive=$(df 2>/dev/null|grep -m 1 " /$" |cut -c 5-8)
+ if ! test -b "/dev$livedrive"
+ then
+  livedrive="not_found"
+ fi
+fi
+#echo ltest0=$ltest0
+#echo ltest1=$ltest1
+#echo ltest2=$ltest2
+#echo livedrive=$livedrive
+
+list_drives
+
+if [ "$livedrive" != "not_found" ]
+then
+ echo "Live drive: /dev$livedrive"
+else
+ echo "Live drive not found"
+fi
+#for i in $(find /sys/devices -name "*sd?"|grep usb|sed s#.*/##)
+#do
+# fdisk -lu /dev/$i 2>/dev/null|grep "Disk /dev"
+#done|sed 's/Disk/USB drive: /'|sort
+echo " "
+
+choice=1
+
+# check if all drives should be available at start (not only USB)
+# usbonly default true, can be changed with parameter2 'all'
+
+if [ "$2" == "all" ] || [ "$2" == "anh" ]
+then
+ usbonly=false
+else
+ usbonly=true
+fi
+
+ans=
+while [ "$ans" != "g" ]
+do
+ item=0
+ cmdsav=
+
+ for j in $(list_drives "$usbonly"|tr -s ' ' ' '|cut -d ' ' -f 4)
+ do
+# echo "j=$j"
+  busy=0
+
+  infstb=$(for k in $(grep ^UUID /etc/fstab 2>/dev/null|tr '=' ' '|cut -d ' ' -f2);do blkid /dev/[^f]d??|grep -m1 $k;done|grep $j)
+  if [ $? -eq 0 ] 
+  then
+   echo "#       would not unmount $j because device is busy; in fstab"
+   busy=1
+#  echo "$infstb"
+  fi
+  tj="$(list_drives $usbonly|grep $j)"
+  if [ $busy -eq 0 ]
+  then
+   for k in $(df --sync 2>/dev/null|grep "$j" |tr -s ' ' '\t'|cut -f1)
+   do umount "$k" 2>/dev/null; if [ "$?" != "0" ];then busy=1;fi ;done
+   if [ $busy -eq 1 ]
+   then
+    echo "#       could not unmount $j because file system on device is busy"
+#   echo "k=$k"
+#   echo "busy=$busy"
+#   echo "${tj:0:7}"
+#   echo "${tj}"
+#   read -p "in the do loop for list_drives"
+
+# if busy
+
+   else
+    item=$(($item + 1))
+#   echo $item , $choice
+    if [ $item -eq $choice ]
+    then
+     /bin/echo -en "\0033[7m---> "
+    else
+     /bin/echo -en "     "
+    fi
+    tj="$(list_drives $usbonly|grep $j)"
+
+#   echo "${tj:1:7}"
+    if [ "$source" != "/dev/zero" ]
+    then
+     targ0="$j"
+     cmd0="$item: install to $tj"
+    elif [ "$1" == "restore" ]
+    then
+     targ0="$j"
+     cmd0="$item: restore device $tj"
+    else
+     targ0="$j"
+     cmd0="$item: wipe device $tj"
+    fi
+    echo $cmd0
+    if [ "$item" == "$choice" ]
+    then
+     /bin/echo -en "\0033[0m"
+     target="$targ0"
+     cmdsav=$cmd0
+    fi
+   fi
+  fi
+ done
+ 
+# select device, go or quit
+
+ if [ $item -lt 1 ]
+ then
+  if $usbonly
+  then
+   echo "No USB target device available. Toggle USB-only?"
+  else
+   echo "No target device available"
+   exit
+  fi
+ elif [ $item -gt 1 ]
+ then
+  echo "Select another device with (+/-) or the number of the list item."
+ fi
+ echo "Go ahead with (g) or quit with (q). Toggle USB-only with (u)."
+ read ans
+ if [ "$ans" == "+" ]
+ then
+  choice=$(($choice + 1))
+  if [ $choice -gt $item ]
+  then
+    choice=$item
+  fi
+ elif [ "$ans" == "-" ]
+ then
+  choice=$(($choice - 1))
+  if [ $choice -lt 1 ]
+  then
+    choice=1
+  fi
+ elif [ "$ans" == "u" ]
+ then
+  choice=1
+  if $usbonly
+  then
+   usbonly=false
+  else
+   usbonly=true
+  fi
+ elif [ "$ans" == "q" ]
+ then
+  exit
+ elif [ "$ans" '>' "0" ] && [ "$ans" '<' "$item" ] || [ "$ans" == "$item" ]
+# elif [ "$ans" != "g" ] && [ $ans -gt 0 ] && [ $ans -le $item ]
+ then
+   choice=$ans
+ fi
+done
+
+# check if any target
+
+if [ $item -lt 1 ]
+then
+ echo "No target device selected"
+ exit
+fi
+
+# here we go
+
+/bin/echo -e "${cmdsav/install to/source: $source
+   target:}"
+
+/bin/echo -e "$inversvid Final checkpoint $resetvid"
+echo "Please check again that it is the correct target device! (y/n)"
+read ans
+if [ "$ans" == "y" ]
+then
+ mkcmd_runcmd "$1" "$source" "$system" "$cnt"
+fi
+}
+# ---------------------------------------------------------------------
+
+function same_iso {
+
+iso=$(mktemp -d)
+drv=$(mktemp -d)
+#echo "$iso"
+#echo "$drv"
+#echo "$source"
+ 
+echo "The iso file SHOULD BE loop mounted on a temporary file READ-ONLY:"
+sleep 0.5
+umount "$iso" >/dev/null 2>&1
+modprobe loop  # for debian jessie
+sync
+mount -o loop -t auto "$source" "$iso"
+ 
+disk_name_type=""
+
+tmpstr=$(grep -i -e ^default -e label "$iso"/{*,*/*,*/*/*}.cfg 2>/dev/null \
+|sed -e s/.*cfg://|head -n2| tr '\n' '|')
+if [ "$tmpstr" != "" ]
+then
+ disk_name_type="label"
+ string1="$tmpstr"
+fi
+tmpstr=$(grep -i -e title "$iso"/{*,*/*,*/*/*}.cfg 2>/dev/null|sed -e s/.*cfg://|head -n1)
+if [ "$tmpstr" != "" ]
+then
+ disk_name_type="title"
+ string1="$tmpstr"
+fi
+tmpstr=$(grep -i version "$iso"/{*,*/*,*/*/*}.cfg 2>/dev/null|sed -e s/.*cfg://|head -n1)
+if [ "$tmpstr" != "" ]
+then
+ disk_name_type="version"
+ string1="$tmpstr"
+fi
+tmpstr=$(grep -i -e Architectures -e Origin -e suite -e version \
+"$iso"/dists/*/Release 2>/dev/null|head -n4|sed 's/.*: *//'| tr '\n' ' ')
+if [ "$tmpstr" != "" ]
+then
+ disk_name_type="debian"
+ string1="$tmpstr"
+fi
+tmpstr=$(grep 'This is an installation system for Ubuntu' \
+ "$iso"/f1.txt 2>/dev/null|sed -e s/.*Ubuntu/Ubuntu/)
+if [ "$tmpstr" != "" ]
+then
+ disk_name_type="mini"
+ string1="$tmpstr"
+fi
+tmpstr=$(grep DISKNAME "$iso"/README.diskdefines 2>/dev/null|sed -e s/.*DISKNAME\ *//)
+if [ "$tmpstr" != "" ]
+then
+ disk_name_type="desktop"
+ string1="$tmpstr"
+fi
+
+echo "disk_name_type=$disk_name_type"
+# echo "string1=$string1"
+
+if [ "$string1" != "" ]
+then
+ echo "$string1 _found_ in iso-file"
+ question="\Z4$string1\Zn\n\n
+
+found in the iso-file"
+else
+ echo "No disk-name string found in iso-file"
+ question="No disk-name string found in the iso-file"
+fi
+sleep 0.5
+umount "$iso"
+rmdir "$iso"
+sync
+
+# Try to unmount partitions except swap partitions, and consider
+# drives with an active swap partition busy, 'variable bizz'
+
+#for i in /dev/[^f]d?
+
+#echo "usbonly=$usbonly ------------------------------------------"
+
+for i in $(list_drives "$usbonly"|tr -s ' ' ' '|cut -d ' ' -f 4)
+do
+ bizz=false
+ 
+ infstb=$(for j in $(grep ^UUID /etc/fstab|tr '=' ' '|cut -d ' ' -f2);do blkid /dev/[^f]d??|grep -m1 $j;done|grep $i)
+ if [ $? -eq 0 ] 
+ then
+#  echo "$i is busy; in fstab"
+  bizz=true
+#  echo "$infstb"
+ fi
+ if ! $bizz
+ then
+  for j in $(blkid ${i}*|grep -v 'TYPE="swap"'|cut -d : -f 1)
+  do
+   umres=$(umount $j 2>&1|grep umount:|sed 's/.*: //')
+#  echo "$j: umres=$umres"
+   if [ "$umres" == "device is busy." ]
+   then
+    bizz=true
+   fi
+  done
+  for j in $(blkid ${i}*|grep 'TYPE="swap"'|cut -d : -f 1)
+  do
+   swpon=$(swapon -s|grep "$j"|cut -d " " -f 1)
+#  echo "$j: swpon=$swpon"
+   if [ "${swpon:0:8}" == "$j" ]
+   then
+    bizz=true
+   fi
+  done
+ fi
+#read -p "pause in do loop"
+
+#echo $bizz 
+ if ! $bizz
+ then
+  mount -t auto "$i" "$drv"  >/dev/null 2>&1
+  if [ $? -eq 0 ]
+  then
+   if [ "$disk_name_type" == "label" ]
+   then
+    string2=$(grep -i -e ^default -e label "$drv"/{*,*/*,*/*/*}.cfg 2>/dev/null \
+    |sed -e s/.*cfg://|head -n2| tr '\n' '|')
+   elif [ "$disk_name_type" == "title" ]
+   then
+    string2=$(grep -i -e title "$drv"/{*,*/*,*/*/*}.cfg 2>/dev/null|sed -e s/.*cfg://|head -n1)
+   elif [ "$disk_name_type" == "version" ]
+   then
+    string2=$(grep -i version "$drv"/{*,*/*,*/*/*}.cfg 2>/dev/null|sed -e s/.*cfg://|head -n1)
+   elif [ "$disk_name_type" == "debian" ]
+   then
+    string2=$(grep -i -e Architectures -e Origin -e suite -e version \
+    "$drv"/dists/*/Release 2>/dev/null|head -n4|sed 's/.*: *//'| tr '\n' ' ')
+   elif [ "$disk_name_type" == "mini" ]
+   then
+    string2=$(grep 'This is an installation system for Ubuntu' \
+    "$drv"/f1.txt 2>/dev/null|sed -e s/.*Ubuntu/Ubuntu/)
+   elif [ "$disk_name_type" == "desktop" ]
+   then
+    string2=$(grep DISKNAME "$drv"/README.diskdefines 2>/dev/null|sed -e s/.*DISKNAME\ *//)
+   else
+    string2="not_$drv"
+   fi
+  else
+   string2="not_$drv"
+  fi
+  sleep 0.5
+  umount "$i" "$drv" 2>/dev/null
+  sync
+  if [ "$string2" == "$string1" ]
+  then
+   echo "$string2 _found_ in $i"
+   question="$question and found in $i"
+   umount "$i" "$drv" 2>/dev/null
+   df -h 2>/dev/null| grep "^$i"
+   if [ $? -eq 0 ]
+   then
+    echo "$i matches the disk-name but could not be unmounted. Is it the live drive?"
+   else
+    target="$i"
+   fi
+  fi
+ fi
+done
+sync
+umount "$drv" >/dev/null 2>&1
+rmdir "$drv"
+sync
+
+# echo "target: $target"
+# exit
+}
+
+# ---------------------------------------------------------------------
+
+function sed_mtab {
+
+if [ "${inst_prog[1]}" == "urpmi" ]  # keep track of mageia's live drive
+then
+ return
+fi
+
+sync
+for i in $(grep ^/dev/[^f]d /etc/mtab|tr -s ' ' ' '|cut -d ' ' -f 1)
+do
+ match=false
+ for j in $(df 2>/dev/null|grep /dev/[^f]d|tr -s ' ' ' '|cut -d ' ' -f 1)
+ do
+  if [ "$i" == "$j" ]
+  then
+   match=true
+#   echo "$i matches"
+  fi
+ done
+ if ! "$match"
+ then
+#  echo sed -i "\%^$i%D" /etc/mtab
+  sed -i "\%^$i%D" /etc/mtab
+ fi
+done
+#cat /etc/mtab
+
+}
+# ---------------------------------------------------------------------
+
+function gpt_fix {
+
+# $1 is the target device
+
+echo \
+"v
+q" \
+| gdisk "$1" 2>/dev/null |grep -e 'GPT: damaged' > /dev/null 2>&1
+if [ $? -eq 0 ]
+then
+echo \
+"v
+x
+e
+r
+d
+w
+y" \
+| gdisk "$1" > /dev/null 2>&1
+
+echo \
+"v
+q" \
+| gdisk "$1" 2>/dev/null |grep -e 'GPT: damaged' -e 'Problem:' > /dev/null 2>&1
+if [ $? -eq 0 ]
+then
+ echo "gpt_fix: failed to fix the GUID partition table (GPT) of $1"
+else
+ echo "gpt_fix: done :-)"
+fi
+fi
+}
+
+# ---------------------------------------------------------------------
+
+function gpt_zap {
+
+# $1 is the target device
+
+echo \
+"
+x
+z
+y
+y" \
+| gdisk "$1" > /dev/null 2>&1
+
+echo "gpt_zap: done"
+}
+
+# ---------------------------------------------------------------------
+#
+# mkusb main program
+#
+# ---------------------------------------------------------------------
+
+bs=4096
+count=256
+cnt=
+target=
+source="$1"
+LC_ALL=C
+LANG=C
+
+# print version on demand
+
+if [ "$1" == "-v" ]
+then
+ echo "mkusb version $version"
+ exit
+fi 
+
+# usage text
+
+if [ "$(whoami)" != "root" ] || [ "$1" == "-h" ] || \
+  ( [ $# -ne 1 ] && ( [ "$2" != "all" ] && [ "$2" != "anh" ] || [ $# -ne 2 ] ) )
+then
+ echo "Usage:"
+ if [ "$1" == "-h" ] ||
+ ( [ $# -ne 1 ] && ( [ "$2" != "all" ] && [ "$2" != "anh" ] || [ $# -ne 2 ] ) )
+ then
+  echo "---- Make a USB install device from ISO or image file ---------------"
+  echo "sudo $0 file.iso"
+  echo "sudo $0 \"quote file name (1) with special characters.iso\""
+  echo "sudo $0 file.img"
+  echo "sudo $0 file.img.gz"
+  echo "sudo $0 file.img.xz"
+  echo "---- Install from 'file.img.xz', show all mass storage devices"
+  echo "sudo $0 file.img.xz all"
+#  echo "---- Install from 'file.img.xz', show all ..., no help text"
+#  echo "sudo $0 file.img.xz anh"
+  echo "---- Clone a device (typically a CD drive or USB drive) -------------"
+  echo "sudo $0 /dev/sr0    # example of CD drive"
+  echo "---- Wipe the USB device (may take long time) -----------------------"
+  echo "sudo $0 wipe-whole-device"
+  echo "---- Wipe the first megabyte (MibiByte), show only USB devices ------"
+  echo "sudo $0 wipe-1"
+  echo "---- Wipe the first megabyte, show all mass storage devices ---------"
+  echo "sudo $0 wipe-1 all"
+  echo "---- Restore to a storage device with FAT32 file system -------------"
+  echo "sudo $0 restore"
+  echo "---- Help and Version -----------------------------------------------"
+  echo "$0 -h"
+  echo "$0 -v"
+ else
+  echo "sudo $0 $1 $2"
+ fi
+ exit
+fi
+
+# check usage mode and input file extension
+
+if [ "${1/.iso}.iso" != "$1" ] && \
+     [ "${1/.img}.img" != "$1" ] && \
+     [ "${1/.img.gz}.img.gz" != "$1" ] && \
+     [ "${1/.img.xz}.img.xz" != "$1" ]
+then
+ if [ "$1" == "wipe-whole-device" ] || [ "$1" == "/dev/zero" ]
+ then
+  echo "Wipe the whole device ..."
+  source="/dev/zero"
+ elif [ "$1" == "wipe-1" ] || [ "$1" == "wipe1" ]
+ then
+  echo "Wipe the first megabyte (MibiByte) ..."
+  source="/dev/zero"
+  cnt="count=$count"
+ elif [ "$1" == "restore" ]
+ then
+  echo "Restore to a storage device with MSDOS partition table & FAT32 file system ..."
+  source="/dev/zero"
+ elif [ "${1%/*}" == "/dev" ]
+ then
+  echo "Clone a device ... :"
+ else
+  echo ":-( $1 is neither an iso file nor an img.{gz,xz} file :-("
+  exit
+ fi
+elif [ ! -f "$source" ]
+then
+ echo ":-( $source is not found :-("
+ exit
+fi
+
+# check pipe view and offer installation
+
+which pv > /dev/null
+if [ "$?" == "0" ]
+then
+ pvplug=true
+else
+ find_installer
+ echo "The program 'pv' can show the progress during the installation."
+ read -p "Do you want to install it? (y/N)" pvi
+ if [ "$pvi" == "y" ]
+ then
+   echo ${inst_prog[@]} pv
+   ${inst_prog[@]} pv
+ fi
+ which pv > /dev/null
+ if [ "$?" == "0" ]
+ then
+  pvplug=true
+ else
+  pvplug=false
+ fi
+fi
+#echo $pvplug
+
+# check gdisk and offer installation
+
+which gdisk > /dev/null
+if [ "$?" == "0" ]
+then
+ gdplug=true
+else
+ find_installer
+ echo "The program 'gdisk' can repair GPT at the end of the installation."
+ read -p "Do you want to install it? (y/N)" gdi
+ if [ "$gdi" == "y" ]
+ then
+   echo ${inst_prog[@]} gdisk
+   ${inst_prog[@]} gdisk
+ fi
+ which gdisk > /dev/null
+ if [ "$?" == "0" ]
+ then
+  gdplug=true
+ else
+  gdplug=false
+ fi
+fi
+#echo "gdplug=$gdplug"
+
+# cd to source file directory to keep partition mounted
+
+#if [ "$source" != "/dev/zero" ]
+if test -f "$source"
+then
+ if [ "${source%/*}" != "$source" ]
+ then
+  cd "${source%/*}"
+ fi
+ source="${source##*/}"
+fi
+#echo "current dir=$PWD"
+
+# check if updating 'the same' iso image
+
+if [ "${1/.iso}.iso" == "$1" ]
+then
+ same_iso
+fi
+
+# update iso image
+
+if [ "$target" != "" ]
+then
+ /bin/echo -e "$inversvid Final checkpoint $resetvid"
+ echo "Install to ${target}? (y/n)"
+ read ans
+ if [ "$ans" == "y" ]
+ then
+  for k in $(df "$j?*" 2>/dev/null|grep '/dev')
+   do sync;umount $k; if [ "$?" != "0" ];then busy=1;fi; done
+  if [ "$busy" == "1" ]
+  then
+   echo "Could not unmount $target because file system on device is busy :-("
+  else
+   if $pvplug
+   then
+    echo "pv \"$source\"| dd of=$target bs=$bs ..."
+    pv "$source"| dd of="$target" bs=$bs
+    echo "syncing the drive ..."
+   else
+    echo "dd if=\"$source\" of=$target bs=$bs ..."
+    dd if="$source" of="$target" bs=$bs
+   fi
+   echo "The $string1 USB device is re-cloned  :-)"
+  fi
+ fi 
+else
+
+# other alternatives: wipe or clone an iso, img.gz, img.xz file
+
+ if [ "$1" == "restore" ]
+ then
+  echo "Do you want to restore a mass storage device (typically USB drive)? (y/n)"
+ elif [ "$source" == "/dev/zero" ]
+ then
+  echo "Do you want to wipe a mass storage device (typically USB drive)? (y/n)"
+ elif [ "${1%/*}" == "/dev" ]
+ then
+  echo "Do you want to clone a device (typically a CD drive to a USB drive)? (y/n)"
+ elif [ "${1/.iso}.iso" == "$1" ]
+ then
+  echo "$string1 _not_ in USB device"
+  echo "Do you want to make a new one? (y/n)"
+ elif [ "${1/.img}.img" == "$1" ]
+ then
+  echo "Do you want to clone $1 to a mass storage device (typically USB drive) (y/n)?"
+elif [ "${1/.img.gz}.img.gz" == "$1" ]
+ then
+  echo "Do you want to clone $1 to a mass storage device (typically USB drive)? (y/n)"
+ elif [ "${1/.img.xz}.img.xz" == "$1" ]
+ then
+  echo "Do you want to clone $1 to a mass storage device (typically USB drive)? (y/n)"
+ else
+  echo "Bad choice -- exit"
+  exit
+ fi
+ read ans
+ if [ "$ans" == "y" ]
+ then
+
+# write help text inactivated, because this version is for advanced users
+# most users are expected to use mkusb versions 8+ (with GUI)
+#
+#  if [ "$2" != "anh" ]
+#  ...
+
+  warnstr="***  WARNING: the device will be completely overwritten      ***"
+  quitstr="***  quit with (q)                                           ***"
+  /bin/echo -e "$inversvid""$warnstr"
+  /bin/echo -e "$quitstr""$resetvid"
+
+# select target drive, make command and run command
+
+  mktst "$1" "$2"
+ fi
+fi
+sed_mtab
+cd "$startdir"
+
