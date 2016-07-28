@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "usb-pack_efi - a help package for mkusb"
+echo "installs /usr/share/mkusb/usb-pack_efi.tar.gz"

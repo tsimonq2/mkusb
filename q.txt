@@ -1,6 +1,0 @@
-dch
-debuild -S
-cd ..
-dput  ppa:mkusb/unstable mkusb_1     ## TAB to get current new-file.changes
-# dput  ppa:mkusb/ppa  new-file.changes
-# dput  ppa:mkusb/unstable  new-file.changes

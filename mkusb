@@ -306,8 +306,14 @@
 # 2016-05-24  sudodus  mkusb version 10.6.5
 # 2016-05-24  sudodus  improved logic to invoke gpt_fix
 # 2016-05-24  sudodus  mkusb version 10.6.6
+# 2016-07-21  sudodus  enabled alternative without usb-pack_efi.tar.gz
+#                      advantage: free software
+#                      disadvantage: 32-bit version do not boot in UEFI mode
+# 2016-07-21  sudodus  mkusb version 11.0.0
+# 2016-07-26  sudodus  function get_usb_pack_efi
+# 2016-07-26  sudodus  mkusb version 11.0.1
 
-version="mkusb 10.6.6"
+version="mkusb 11.0.1"
 
 prgnam="${version% *}"
 #echo "$prgnam"
@@ -594,7 +600,7 @@ errout=$(mktemp)
 zerrlog=$(mktemp)
 
 (echo "$htmlbody") | zenity --text-info --html --filename=/dev/stdin \
---height=$(($hadd+120)) --title "" --timeout 2 2>> "$errout"
+--height=$(($hadd+120)) --title "" --timeout 1 2>> "$errout"
 
 exitnr=$?
 grep 'The owner of' "$errout"
@@ -1555,7 +1561,7 @@ sed_mtab
 
 if test -s "$zerrlog"
 then
- zenity --question --timeout 3 --text "Check zenity error log?" \
+ zenity --question --timeout 1 --text "Check zenity error log?" \
  --ok-label "No" --cancel-label="Yes" 2>> "$zerrlog"
  if [ $? -eq 1 ]
  then
@@ -3302,7 +3308,7 @@ function grub_n_iso {
 inst=0
 bpsiz=128
 
-select_boot_system
+#select_boot_system
 select_partition_table
 echo "selected target partition table: '$part_type'"
 get_grub_pc
@@ -3335,10 +3341,10 @@ fi
 # check if running an installed system in UEFI mode, and
 # in that case 'upefi' (usb-pack_efi.tar.gz) cannot be used
 
-if ! $biosbl
+if ! $biosbl || ! test -f "$mkusb_sdir"/usb-pack_efi.tar.gz
 then
  upefi=false
- mess0="The boot system must be fetched from the ISO file"
+ mess0="The boot system for UEFI must be fetched from the ISO file"
  echo "$separator"
  echo "$mess0"
  echo "$separator"
@@ -3353,7 +3359,9 @@ srclocal="${srcorig##*/}"
 
 mount -o loop "$srclocal" "$looper" 2>&1
 
-if ! test -f "$looper"/boot/grub/grub.cfg && ! $upefi
+select_boot_system "$looper"
+
+if ! test -f "$looper"/boot/grub/grub.cfg && ! $upefi && ! $biosbl
 then
  ng1="'.../boot/grub/grub.cfg': file not found"
  ng2="In an installed system in UEFI mode, mkusb needs
@@ -3367,6 +3375,9 @@ Try with an Ubuntu family *amd64* iso file."
  rm -r "$looper" "$targ1" "$tailfile" "$usbdata"
  warner "$ng1" "$ng2"
  exit
+elif ! test -f "$looper"/boot/grub/grub.cfg
+then
+ get_usb_pack_efi
 fi
 
 # general grub_n_iso progress window
@@ -3428,12 +3439,12 @@ then
  exit
 fi
 
-is_file "$mkusb_sdir"/usb-pack_efi.tar.gz
-if [ $? -ne 0 ]
-then
- clear_grn "$pid" "$looper" "$targ1" "$tailfile" "$usbdata"
- exit
-fi
+#is_file "$mkusb_sdir"/usb-pack_efi.tar.gz
+#if [ $? -ne 0 ]
+#then
+# clear_grn "$pid" "$looper" "$targ1" "$tailfile" "$usbdata"
+# exit
+#fi
 
 source="$srcorig"
 
@@ -3522,7 +3533,7 @@ fi
 get_percent
 
 echo "$separator"
-echo "Selected percentage of remaining space for persistence = $perc"
+echo -e "$inversvid Selected percentage of remaining space for persistence = $perc $resetvid"
 echo "$separator"
 persize=$(( $perc * $freesize/100 ))
 if [ $persize -lt 300 ]
@@ -3797,13 +3808,25 @@ echo "70
 
 if $biosbl
 then
- if $upefi
+ if $upefi && test -f "$mkusb_sdir"/usb-pack_efi.tar.gz
  then
-  /bin/echo -n "UEFI Bootloader:  "
+  /bin/echo -ne "$inversvid UEFI Bootloader: $resetvid "
   grub-install --force --removable --no-floppy --boot-directory="$targ1"/boot \
   --efi-directory="$targ1"/EFI/BOOT "$2" 2>&1
+ elif ! test -f "$looper"/boot/grub/grub.cfg
+ then
+  /bin/echo -e "$inversvid No UEFI Bootloader available $resetvid
+mkusb needs the package 'usb-pack-efi' with the file
+'usb-pack_efi.tar.gz' from 'ppa:mkusb/ppa' to make a
+persistent live system with this iso file boot in UEFI mode.
+You can use the following command lines in a terminal window.
+  
+sudo add-apt-repository ppa:mkusb/ppa
+sudo apt-get update
+sudo apt-get install usb-pack-efi
+$separator"
  fi
- /bin/echo -n "BIOS Bootloader:  "
+ /bin/echo -ne "$inversvid BIOS Bootloader: $resetvid "
  grub-install --force --removable --no-floppy --boot-directory="$targ1"/boot "$2" 2>&1
 fi
 
@@ -3812,17 +3835,20 @@ echo "80
 
 error=""
 
-if ! $upefi  # start copy/extract boot files ---------------------------
+# start copy/extract boot files (not upefi) ----------------------------
+
+if ! $upefi && test -f "$looper"/boot/grub/grub.cfg
 then
 
 # copy the boot files from the iso file
 
-echo "copy the boot files from the iso file"
+/bin/echo -e "$inversvid 64-bit bootloader: copy the boot files from the iso file $resetvid"
 echo "looper=$looper"
 echo "targ1=$targ1"
 
 sudo rsync -Ha --exclude=filesystem.squashfs "$looper/" "$targ1"
-echo "rsync: symlink errors are *expected* because of the target file system"
+/bin/echo -e "rsync:$inversvid  don't worry, $resetvid symlink errors are *expected*
+because of the target file system."
 
 is_file "$targ1"/boot/grub/grub.cfg
 if [ $? -ne 0 ]
@@ -3849,15 +3875,18 @@ then
 fi
 rm "$targ1"/boot/grub/grub.cfg0
 
-else  # ... copy/extract boot files -----------------------------------
+else  # ... copy/extract boot files (upefi) ----------------------------
 
 # extract files originally from Andre's zip-file (except grub.cfg grub4dos/ ini/)
 
-echo "using usb-pack_efi.tar.gz"
-tar -xvzf "$mkusb_sdir"/usb-pack_efi.tar.gz --directory "$targ1"
-if [ $? -ne 0 ]
+if test -f "$mkusb_sdir"/usb-pack_efi.tar.gz
 then
- error="- tar: extracting usb-pack_efi"
+ echo "using usb-pack_efi.tar.gz"
+ tar -xvzf "$mkusb_sdir"/usb-pack_efi.tar.gz --directory "$targ1"
+ if [ $? -ne 0 ]
+ then
+  error="- tar: extracting usb-pack_efi"
+ fi
 fi
 
 # tweak grub.cfg
@@ -3895,7 +3924,7 @@ then
  error="$error - sed: appending grub.cfg"
 fi
 
-fi  # end copy/extract boot files -------------------------------------
+fi  # end copy/extract boot files --------------------------------------
 
 # copy the script files 'backup' and 'restore'
 
@@ -4128,8 +4157,8 @@ then
  echo "$separator"
  mess1="\Z4$0\Zn\n
 \n
-might not make all systems bootable in UEFI mode using 'usb-pack_efi'
-from this version. You should \Z4work in version $minrel or newer\Zn of
+might not make all systems bootable in UEFI mode from this version.
+You should \Z4work in version $minrel or newer\Zn of
 Ubuntu or an Ubuntu flavour (Kubuntu, Lubuntu, ... Xubuntu.)"
  echo "$mess1"|sed -e 's/\\Z.//g' -e 's/\\n//g'
  message="$mess1\n
@@ -4704,6 +4733,39 @@ fi
 ########################################################################
 ########################################################################
 
+function get_usb_pack_efi {
+
+if ! test -f /usr/share/mkusb/usb-pack_efi.tar.gz && test -f /usr/bin/apt-get
+then
+ upinst=$(apt-cache policy usb-pack-efi|grep -m1 Installed)
+ if [ "${upinst/(none)}" != "$upinst" ]
+ then
+  menu_package_installer wants usb-pack-efi "useful in order to install 'persistent live'."
+ elif [ "${upinst/Installed}" != "$upinst" ]
+ then
+  echo "usb-pack-efi: $upinst"
+  echo "trying to reinstall usb-pack-efi ..."
+  sudo apt-get install --reinstall usb-pack-efi
+  echo "$separator"
+ else
+  echo "$separator"
+  message="mkusb will be able to create persistent live drives that work in UEFI mode
+also from 32-bit iso files, if you add ppa:mkusb/ppa and install usb-pack-efi.
+You can copy and paste the following three command lines to a terminal window.
+
+sudo add-apt-repository ppa:mkusb/ppa
+sudo apt-get update
+sudo apt-get install usb-pack-efi"
+  echo "$message"
+  echo "$separator"
+  warner "Install 'usb-pack-efi' manually" "$message"
+ fi
+fi
+}
+
+########################################################################
+########################################################################
+
 function menu_entry_1 {
 
 # Usage:   menu_entry_1 <input file> <output file>
@@ -4753,42 +4815,65 @@ IFS=$old_IFS  # restore default field separator
 
 function select_boot_system {
 
-while [ "$ans" != "u" ] && [ "$ans" != "i" ] && [ "$ans" != "q" ]
-do
+# parameter looper
 
- ans=$(zenity --list --width=$(($wadd+540)) --height=$(($hadd+240)) \
+ans=
+#find "$looper" -name "*amd64*" | grep -a grub
+find "$looper" -name "*amd64*" | grep -a grub > /dev/null 2> /dev/null
+#ans=$?
+#echo "find "$looper" -name *amd64* | grep -a grub 2>&1 /dev/null"
+#echo "select_boot_system: ans=dollarfråga=$ans"
+#if [ $ans -eq 0 ] && test -f "$mkusb_sdir"/usb-pack_efi.tar.gz
+if [ $? -eq 0 ] && test -f "$mkusb_sdir"/usb-pack_efi.tar.gz
+then
+ while [ "$ans" != "u" ] && [ "$ans" != "i" ] && [ "$ans" != "q" ]
+ do
+
+  ans=$(zenity --list --width=$(($wadd+540)) --height=$(($hadd+240)) \
 --title="$version - select boot system" --cancel-label="Quit" \
 --window-icon="/usr/share/icons/hicolor/48x48/apps/mkusb.png" \
 --text="Select preferred boot system from 'usb-pack_efi' or from 'ISO file'
 'usb-pack_efi': does not work with secure boot
 'ISO file': does not work with i386 iso files (32-bit systems)" \
 --column="Hotkey" --column="Selection" \
-u "usb-pack_efi" \
 i "ISO file" \
-q "Quit from this menu (default 'usb-pack_efi' if possible)" \
+u "usb-pack_efi" \
+q "Quit from this menu (default 'ISO file' if possible)" \
  2>> "$zerrlog")
 
- retval=$?
- if [ $retval -eq 1 ]
- then
-  ans=$retval
- fi
- ans=${ans:0:1}          # fix for buggy(?) zenity --list in trusty
+  retval=$?
+  if [ $retval -eq 1 ]
+  then
+   ans=$retval
+  fi
+  ans=${ans:0:1}          # fix for buggy(?) zenity --list in trusty
 
 # echo "ans=xxx${ans}xxx"
 
- if [ "$ans" == "1" ]
- then
-  ans="q"
- elif [ "$ans" == "u" ]
- then
-  upefi=true
- elif [ "$ans" == "i" ]
+  upefi=false
+  if [ "$ans" == "1" ]
+  then
+   ans="q"
+  elif [ "$ans" == "u" ]
+  then
+   upefi=true
+  elif [ "$ans" == "i" ]
+  then
+   upefi=false
+  fi
+ done
+ ans=0
+
+else
+ find "$looper" -name "*amd64*" | grep grub > /dev/null 2> /dev/null
+ if [ $? -eq 0 ]
  then
   upefi=false
+ else
+  upefi=true
  fi
-done
-ans=0
+fi
+echo "select_boot_system: [if installed, use] usb-pack_efi=$upefi"
 }
 
 ########################################################################
