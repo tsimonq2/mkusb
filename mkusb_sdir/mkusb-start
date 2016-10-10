@@ -60,7 +60,7 @@ which zenity > /dev/null
 if [ $? -eq 0 ]
 then
  rdev=$(df | grep -m1 /$|cut -d ' ' -f1)
- if [ "$rdev" == "/cow" ] || [ "$rdev" == "aufs" ]
+ if [ "$rdev" == "/cow" ] || [ "$rdev" == "aufs" ] || [ "$rdev" == "/dev/mapper/live-rw" ]
  then
   sudo -H mkusb >> ~/mkusb.log
  else

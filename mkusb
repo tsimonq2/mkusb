@@ -312,8 +312,40 @@
 # 2016-07-21  sudodus  mkusb version 11.0.0
 # 2016-07-26  sudodus  function get_usb_pack_efi
 # 2016-07-26  sudodus  mkusb version 11.0.1
+# 2016-09-03  sudodus  function chk4ubuntu_upgrades
+#                      change 'Download and install automatically'
+#                      to 'Display immediately'
+# 2016-09-03  sudodus  mkusb version 11.0.2
+# 2016-09-14  sudodus  fix to manage flash cards seen as /dev/mmcblk0
+# 2016-09-14  sudodus  mkusb-nox version 11.0.3
+# 2016-09-17  sudodus  function select_source_as_user replaces
+#                      select_source and general_file_select
+#                      runs 'as user' not 'as root', mmcblk? added to filter
+# 2016-09-17  sudodus  mkusb version 11.0.{4,5}
+# 2016-09-19  sudodus  check for $(whoami) instead of $USER for fedora 24
+# 2016-09-19  sudodus  mkusb version 11.0.6
+# 2016-09-20  sudodus  fixes for opensuse 42.1:
+#                      disk/by-id/ 'scsi' accepted because 'usb' not used
+#                      select file as root because regular user fails
+# 2016-09-20  sudodus  mkusb version 11.0.7
+# 2016-09-20  sudodus  default isdisplay=0 (alias default 'OK')
+# 2016-09-20  sudodus  mkusb version 11.0.8
+# 2016-10-06  sudodus  mkusb 'needs rsync' (not default in debian sid)
+#                      (only mkusb-nox, making boot drives with Windows
+#                      debian: replaced rsync (not default) with cp and
+#                      removed 'insmod' lines with grep -v for grub.cfg)
+#                      put debian 'on par' with ubuntu in text strings
+#                      and some logical expressions to activate pop up
+#                      windows with (messages and warnings)
+# 2016-10-06  sudodus  mkusb version 11.1.1
+# 2016-10-07  sudodus  tweaked window sizes to display the whole title
+# 2016-10-06  sudodus  persist_check_body_bg: separate background colour
+#                      of the final checkpoint when persistent live
+#                      fix for new format of the colour specification
+#                      fix for text mode browser (run in xterm) 
+# 2016-10-07  sudodus  mkusb version 11.1.2
 
-version="mkusb 11.0.1"
+version="mkusb 11.1.2"
 
 prgnam="${version% *}"
 #echo "$prgnam"
@@ -346,7 +378,8 @@ fi
 # Console window grey
 #<body style='background:#ebeceb:'>
 
-final_check_body_bg='#cc0000'
+final_check_body_bg='#dd0000'
+persist_check_body_bg='#e8a020'
 iso_test_body_bg='#3580ca'
 if test -s "$tgfile"
 then
@@ -355,6 +388,9 @@ then
   if [ "${tmpc%=*}" == "final_check_body_bg" ]
   then
    final_check_body_bg="${tmpc#*=}"
+  elif [ "${tmpc%=*}" == "persist_check_body_bg" ]
+  then
+   persist_check_body_bg="${tmpc#*=}"
   elif [ "${tmpc%=*}" == "iso_test_body_bg" ]
   then
    iso_test_body_bg="${tmpc#*=}"
@@ -402,6 +438,7 @@ zenityplug=
 makepart=
 splashed=false
 checked_pack=false
+persnote_flag=false
 upefi=true
 part_type=
 biosbl=
@@ -411,6 +448,7 @@ system=
 systag=
 spec_src=
 target=
+looper=
 cmdsav=
 imagefile=
 curlang="$LANG"
@@ -422,6 +460,7 @@ wadd=0
 hadd=0
 distr=
 disk_name_type=
+chk_upgrd=false
 zerrlog=
 separator="---------------------------------------------------------------------------"
 imgsrc="\
@@ -581,10 +620,10 @@ if [ "$distr" == "opensuse" ]
 then
  hadd=60
  wadd=0
-elif [ "$distr" == "debian" ]  # jessie may need this (default OK for wheezy)
-then
- hadd=50
- wadd=50
+#elif [ "$distr" == "debian" ]  # jessie may need this (default OK for wheezy)
+#then
+# hadd=50
+# wadd=50
 fi
 
 ls / | grep KNOPPIX
@@ -598,6 +637,8 @@ fi
 
 errout=$(mktemp)
 zerrlog=$(mktemp)
+touch "$zerrlog"
+chmod ugo+rwx "$zerrlog"
 
 (echo "$htmlbody") | zenity --text-info --html --filename=/dev/stdin \
 --height=$(($hadd+120)) --title "" --timeout 1 2>> "$errout"
@@ -663,11 +704,14 @@ rm "$tgfile"
 zenity --question --text="Reset the background colours?"
 if [ $? -eq 0 ]
 then
- final_check_body_bg='#cc0000'
+ final_check_body_bg='#dd0000'
+ persist_check_body_bg='#e8a020'
  iso_test_body_bg='#3580ca'
 fi
 colsel "final_check_body_bg" "$final_check_body_bg"
 final_check_body_bg="$newcol"
+colsel "persist_check_body_bg" "$persist_check_body_bg"
+persist_check_body_bg="$newcol"
 colsel "iso_test_body_bg" "$iso_test_body_bg"
 iso_test_body_bg="$newcol"
 }
@@ -682,9 +726,14 @@ while [ "$ans" != "0" ]
 do
 
 ans=$(zenity --title="$version - Edit the colour of '$1'" --color-selection --color="$newcol" \
---window-icon="/usr/share/icons/hicolor/48x48/apps/mkusb.png")
+--width=400 --window-icon="/usr/share/icons/hicolor/48x48/apps/mkusb.png")
 
-if [ ${#ans} -eq 13 ]
+#read -p "selected colour=$ans (and string length=${#ans}). Is is what you expect? "
+
+if [ "${ans:0:3}" == "rgb" ]
+then
+ newcol="$ans"
+elif [ ${#ans} -eq 13 ]
 then
  newcol="#${ans:1:2}${ans:5:2}${ans:9:2}"
 elif [ ${#ans} -eq 7 ]
@@ -715,7 +764,7 @@ $arrow
 </body>"
 
  (echo "$htmlbody") | zenity --text-info --html --filename=/dev/stdin \
---width=$(($wadd+640)) --height=$(($hadd+450)) \
+--width=$(($wadd+720)) --height=$(($hadd+450)) \
 --title "$version - Testpage for background colour at Final checkpoint" \
 --ok-label="Good colour" --cancel-label="Try again" \
 --checkbox="Check this box if you are ready to go" 2>> "$zerrlog"
@@ -879,7 +928,7 @@ mkusb - MaKe USB boot device<br>
 author - sudodus alias Nio Wiklund<br>
 https://help.ubuntu.com/community/mkusb<br>
 <br>
-Copyright 2014 Nio Wiklund<br>
+Copyright 2014-2016 Nio Wiklund<br>
 GPLv3: GNU GPL version 3<br>
 http://gnu.org/licenses/gpl.html
 </center><br>
@@ -1040,6 +1089,22 @@ message=${message//\\Z1/<span style='color:#cc0000;'>}
 message=${message//\\Z7/<span style='color:#ebeceb;'>}
 message=${message//\\Zn/<\/span>}
 
+
+if $persnote_flag
+then
+ if $liveonly
+ then
+  persnote="- live-only -"
+  current_check_body_bg="$final_check_body_bg"
+ else
+  persnote="- persistent live -"
+  current_check_body_bg="$persist_check_body_bg"
+ fi
+else
+ persnote=""
+fi
+persnote_flag=false
+
 htmlbody="
 <!-- GREEN <body style='background:#b4df02;'> -->
 <!-- RED   <body style='background:#cc0000;'> -->
@@ -1048,11 +1113,10 @@ htmlbody="
 <body style='background:#ebeceb;'>
 
 $imgsrc
-<!--
-<span style='font-family:arial;font-size:20px;'><sup><b>
-- mkusb -
-</b></sup></span>
--->
+<span style='font-family:arial;font-size:32px;background:$current_check_body_bg'>
+$persnote
+</span>
+
 <span style='font-family:arial;background:#ebeceb;color:black;font-size:14px;'>
 <p>
 <br>
@@ -1232,10 +1296,14 @@ cnt1=0
 cnt2=0
 
 tmpfil=$(mktemp)
-ls -l /dev/disk/by-id| grep [a-z]$|tr -s ' ' ' '|cut -d ' ' -f 9,11 \
-|sort -k2|grep -e \^a -e \^u|sed 's#../..#/dev#' > "$tmpfil"
+ls -l /dev/disk/by-id| grep -e [a-z]$ -e mmcblk[0-9]$|tr -s ' ' ' '|cut -d ' ' -f 9,11 \
+|sort -k2|grep -e \^a -e \^u -e \^m|sed 's#../..#/dev#' > "$tmpfil"
 
-#cat "$tmpfil"
+if [ "$distr" == "opensuse" ]
+then
+ ls -l /dev/disk/by-id| grep -e [a-z]$ -e mmcblk[0-9]$|tr -s ' ' ' '|cut -d ' ' -f 9,11 \
+ |sort -k2|grep -e \^a -e \^u -e \^m -e \^scsi-S|grep -v \^scsi-SATA|sed 's#../..#/dev#' > "$tmpfil"
+fi
 
 while read name device
 do
@@ -1246,7 +1314,8 @@ nam1[$cnt1]=${nam1[$cnt1]:0:36}
 # /bin/echo -e "${nam1[$cnt1]}\0011${dev1[$cnt1]}"
 done < "$tmpfil"
 
-lsblk -db /dev/[^f]d?|grep disk|tr -s ' ' ' '| cut -d ' ' -f1-4 |sort > "$tmpfil"
+lsblk -db /dev/[^f]d? /dev/mmcblk? 2> /dev/null|grep disk|tr -s ' ' ' ' \
+| cut -d ' ' -f1-4 |sort > "$tmpfil"
 
 while read device dum1 dum2 bytesize
 do
@@ -1306,9 +1375,17 @@ do
   if [ "$1" == "true" ]
   then
    usbstring="${string/Name\:\ usb\-/USB: }"
+   mmcstring="${string/Name\:\ mmc\-/MMC: }"
+   scsistring="${string/Name\:\ scsi\-S/SCSI: }"
    if [ "$usbstring" != "$string" ]
    then
     /bin/echo -e "$usbstring"
+   elif [ "$mmcstring" != "$string" ]
+   then
+    /bin/echo -e "$mmcstring"
+   elif [ "$scsistring" != "$string" ]
+   then
+    /bin/echo -e "$scsistring"
    fi
   else
     /bin/echo -e "$string"
@@ -1364,6 +1441,7 @@ Do you want to install it? (y/N)"
  else
   get_grub_pc
   menu_package_installer needs gdisk "needed in order to install 'persistent live'."
+  menu_package_installer needs rsync "needed in order to install 'persistent live'."
  fi
  menu_package_installer wants wmctrl "only in order to install 'persistent live'."
  menu_package_installer wants xterm "mkusb-legacy.desktop works without it"
@@ -1917,10 +1995,14 @@ then
  if $liveonly
  then
   persnote="<br>Installing a <span style='color:#2252a0;'>live only</span> system<br>"
+  current_check_body_bg="$final_check_body_bg"
  else
   persnote="<br>Installing a <span style='color:#2252a0;'><b>persistent</b></span> live system<br>"
+  current_check_body_bg="$persist_check_body_bg"
   btitle="$btitle - persistent"
  fi
+else
+ current_check_body_bg="$final_check_body_bg"
 fi
 if [ "$systag" != "" ]
 then
@@ -1929,7 +2011,7 @@ was found in the iso-file.<br>
 <br>"
 fi
  htmlbody="
-<body style='background:$final_check_body_bg;'>
+<body style='background:$current_check_body_bg;'>
 $imgsrc
 <!--
 <span style='font-family:arial;font-size:20px;'><sup><b>
@@ -2363,7 +2445,7 @@ $question"
 
  fi
  ans=$?
-
+ persnote_flag=false
  if [ "$ans" == "0" ]
  then
   busy=0
@@ -2756,7 +2838,7 @@ and double-check that you select the correct target device!\n
 There will be no easy way to recover any previous data.\n
 Expensive intelligence services might restore some data.</center>"
 
-mkz_msg "$message" "--title=$btitle" "--width=$(($wadd+560))" "--height=$(($hadd+400))" "--cancel-label=About"
+mkz_msg "$message" "--title=$btitle" "--width=$(($wadd+640))" "--height=$(($hadd+400))" "--cancel-label=About"
 
 ##################
 #legacy=true
@@ -2852,10 +2934,11 @@ retval=$?
 
  if [ "$ans" == "s" ]
  then
-  select_source
+  select_source_as_user
  elif [ "$ans" == "i" ]
  then
   echo "imagefile=$imagefile"
+  persnote_flag=true
   usage_prep_final "$imagefile"
  elif [ "$ans" == "l" ]
  then
@@ -2978,10 +3061,26 @@ parted -s "$target" mkpart primary 1048576b 100%
 sleep 0.5
 parted -s "$target" set 1 boot on  # set boot flag on partition 1
 sleep 0.5
-mkfs.vfat -v -F 32 -n "$label1" "${target}1"
-sleep 0.5
-sync
-part_info "created MSDOS partition table and FAT file system"
+if [ "${target:0:11}" == "/dev/mmcblk" ]
+then
+ mkfs.vfat -v -F 32 -n "$label1" "${target}p1"
+else
+ mkfs.vfat -v -F 32 -n "$label1" "${target}1"
+fi
+if [ $? -eq 0 ]
+then
+ strut="created MSDOS partition table and FAT file system"
+ sync
+ sleep 0.5
+ sudo blkid -c /dev/null "${target}"* # > /dev/null 2>&1
+ sleep 0.5
+ sync
+ part_info "created MSDOS partition table and FAT file system"
+else
+ strut="mk_msdos: could not create MSDOS partition table and FAT file system"
+ warner "$strut"
+fi
+/bin/echo -e "$inversvid $strut $resetvid"
 }
 
 #######################################################################
@@ -3003,10 +3102,13 @@ parted -s "$target" mkpart primary 320MB 321MB
 sleep 0.5
 parted -s "$target" set 2 bios_grub on
 sleep 0.5
-mkfs.vfat -v -F 32 "${target}1"
-sleep 0.5
-dosfslabel "${target}1" EFI
-sleep 0.5
+if [ "${target:0:11}" == "/dev/mmcblk" ]
+then
+ mkfs.vfat -v -F 32 -n EFI "${target}p1"
+else
+ mkfs.vfat -v -F 32 -n EFI "${target}1"
+fi
+sleep 1.0
 sync
 part_info "created GUID partition table with EFI and bios_grub partitions"
 }
@@ -3030,7 +3132,12 @@ parted -s "$target" mklabel gpt
 sleep 0.5
 parted -s "$target" mkpart primary 1048576b 100%
 sleep 0.5
-mkfs.ntfs -v -f -L "$label1" "${target}1"
+if [ "${target:0:11}" == "/dev/mmcblk" ]
+then
+ mkfs.ntfs -v -f -L "$label1" "${target}p1"
+else
+ mkfs.ntfs -v -f -L "$label1" "${target}1"
+fi
 sleep 0.5
 parted -s "$target" set 1 msftdata on
 sleep 0.5
@@ -3102,6 +3209,10 @@ sync
 sleep 0.5
 blkid -c /dev/null "${target}?" > /dev/null
 sleep 0.5
+if [ "${target:0:11}" == "/dev/mmcblk" ]
+then
+ warner "Unplug and re-plug the flash card to see the correct info ..."
+fi
 partinfo=$(parted -s "$target" print; \
 echo " "; \
 lsblk -o MODEL,NAME,FSTYPE,LABEL "$target")
@@ -3147,7 +3258,7 @@ elif which gnome-open > /dev/null; then
 elif which gnome-www-browser > /dev/null; then
   $cmdstr "gnome-www-browser $1"
 elif  which xdg-open > /dev/null; then
-  $cmdstr "xdg-open $1"
+  $cmdstr "xterm -fa default -fs 12 -e xdg-open $1"
 else
   echo "Could not detect a web browser to use"
 fi
@@ -3241,48 +3352,53 @@ ans=0
 #######################################################################
 #######################################################################
 
-function general_file_select {
-
-#echo $imagefile
-if test -f "$imagefile"
-then
- choice="$imagefile"	
-else
- choice="$PWD/"
-fi
-
-ans=$(zenity --file-selection --title "$version - Select source file" \
---filename="$choice" --file-filter={*.i[sm][og]*,*.iso,*.img,*.img.?z,s[dr]?,*} 2>> "$zerrlog")
-#--filename="$choice" --file-filter=*.{i[sm][og]*,iso,img,img.?z} 2>> "$zerrlog")
-
-imagefile="$ans"
-}
-
-#######################################################################
-#######################################################################
-
-function select_source {
+function select_source_as_user {
 
 LANG="$curlang"
 
-general_file_select
+touch "$selected"
+chmod ugo+rwx "$selected"
+#read imagefile < "$selected"
 
 test -f "$imagefile" || test -b "$imagefile"
-if [ $? -ne 0 ]
+if [ $? -eq 0 ]
 then
+ choice="$imagefile"	
+else
  imagefile=""
+ choice="$PWD/"
 fi
 
-# write selection
+usrstr=$(who|grep -m1 -e tty7 -e console -e ':0'|cut -d ' ' -f 1)
 
-#echo "imagefile=$imagefile in 'select_source'"
-#read -p 'press Enter to continue'
+if [ "$distr" == "opensuse" ]
+then
+ su $usrstr -c "zenity --info --text='test window' --timeout 1 > /dev/null 2>&1"
+ isdisplay=$?
+#echo "usrstr=$usrstr"
+#echo "isdisplay=$isdisplay"
+#sleep 3
+else
+ isdisplay=0
+fi
+if [ "$usrstr" == "" ] || ! ( [ $isdisplay -eq 0 ] || [ $isdisplay -eq 5 ] )
+then
+ echo ""
+ echo "mkusb found no regular user ID;"
+ echo "tries to select source file"
+ echo "with root privileges."
+ zenity --file-selection --title "$version - Select source file" \
+--filename="$choice" --file-filter={*.i[sm][og]*,*.iso,*.img,*.img.?z,s[dr]?,mmc*,*} \
+> "$selected" 2>> "$zerrlog"
+else
+ su $usrstr -c "zenity --file-selection --title \"$version - Select source file\" \
+--filename=\"$choice\" --file-filter={*.i[sm][og]*,*.iso,*.img,*.img.?z,s[dr]?,mmcblk?,*} \
+> \"$selected\" 2>> \"$zerrlog\""
+fi
 
-echo "$imagefile" > "$selected"
+read imagefile < "$selected"
 
 echo "select_source: imagefile=$imagefile"
-
-ans=""
 #LANG=C
 }
 
@@ -3307,6 +3423,14 @@ function grub_n_iso {
 
 inst=0
 bpsiz=128
+if [ "${2:0:11}" == "/dev/mmcblk" ]
+then
+ tu="${2}p"
+else
+ tu="$2"
+fi
+
+echo "***** tu=$tu ****************************************************"
 
 #select_boot_system
 select_partition_table
@@ -3329,9 +3453,6 @@ fi
 parcnt=$#
 if [ $parcnt -ne 3 ] || [ "$USER" != "root" ] || [ "$1" == "-h" ]
 then
- echo "Usage:   sudo $0 <source.iso> <target device>"
- echo "Example: sudo $0 ubuntu.iso /dev/sdx"
- echo ""
  echo "Try again with the correct target device according to the list below"
  echo ""
  lsblk -o MODEL,NAME,FSTYPE,LABEL,MOUNTPOINT,SIZE /dev/[^f]d?
@@ -3368,7 +3489,7 @@ then
 '$looper/boot/grub/grub.cfg'
 from the source iso file, but it is not found.
 
-Try with an Ubuntu family *amd64* iso file."
+Try with a Debian or Ubuntu family *amd64* iso file."
  echo "$ng1"
  echo "$ng2"
  umount "$looper" 2>&1
@@ -3452,11 +3573,11 @@ echo "10
 # unmount, swapoff and wipe GPT traces and the first megabyte" >> "$tailfile"
 
 umount "$targ1" 2> /dev/null
-part="${2}3"
+part="${tu}3"
 #umount  "$part"
 #df|grep "$part"
-umount  ${2}? 2> /dev/null
-df|grep ${2}
+umount  ${tu}? 2> /dev/null
+df|grep "$2"
 if [ $? -eq 0 ]
 then
  mess1="Cannot unmount a partition on the target device"
@@ -3465,7 +3586,7 @@ then
  clear_grn "$pid" "$looper" "$targ1" "$tailfile" "$usbdata"
  exit
 fi
-swapoff ${2}? 2> /dev/null
+swapoff ${tu}? 2> /dev/null
 
 echo "Clean for a GUID partition table"
 
@@ -3506,7 +3627,7 @@ mibib=$(( $bytes/1000000 + 20))
 
 #echo "target device=${2##*/}"
 
-targsize=$(lsblk -db /dev/[^f]d?|grep disk|tr -s ' ' ' '|grep "${2##*/}"| cut -d ' ' -f4)
+targsize=$(lsblk -db /dev/[^f]d? /dev/mmcblk?|grep disk|tr -s ' ' ' '|grep "${2##*/}"| cut -d ' ' -f4)
 targsize=$(( ($targsize + 500000)/1000000))
 
 #echo "targsize=$targsize"
@@ -3519,7 +3640,7 @@ then
  mess1="Too small space ( less than 200 MB )
 to make a partition for persistence,
 
-1. Install from a smaller iso file, for example Lubuntu,
+1. Install from a smaller iso file, for example Lubuntu or Debian LXDE,
 2. or install to a bigger target device
 3. or make a boot drive without persistence"
  echo "$mess1"
@@ -3646,7 +3767,7 @@ sleep 0.5
 #sync
 #tmptxt="Un-plug and re-plug the target drive if a USB drive!"
 #read -p "$tmptxt Press Enter to continue ... "
-#umount ${2}?
+#umount ${tu}?
 
 echo "30
 # make partitions: preparing $part" >> "$tailfile"
@@ -3663,32 +3784,32 @@ sync
 sleep 0.5
 
 echo "40
-# make partitions: preparing ${2}1 and ${2}5" >> "$tailfile"
+# make partitions: preparing ${tu}1 and ${tu}5" >> "$tailfile"
 
-echo "preparing ${2}1  ------------------------------------------------"
+echo "preparing ${tu}1  ------------------------------------------------"
 if [ $ntfssize -gt 0 ]
 then
- dd if=/dev/zero of="${2}1" bs=1024 count=1024 2>&1
+ dd if=/dev/zero of="${tu}1" bs=1024 count=1024 2>&1
  sync
- umount  "${2}1" 2>&1
+ umount  "${tu}1" 2>&1
  sync
  sleep 2
- mkfs.ntfs -v -f -L "usbdata" "${2}1" 2>&1
+ mkfs.ntfs -v -f -L "usbdata" "${tu}1" 2>&1
  sync
  sleep 0.5
 else
- echo "No space for NTFS partition ${2}1, only placeholder"
+ echo "No space for NTFS partition ${tu}1, only placeholder"
 fi
-echo "preparing ${2}5  ------------------------------------------------"
-dd if=/dev/zero of="${2}5" bs=1024 count=1024 2>&1
+echo "preparing ${tu}5  ------------------------------------------------"
+dd if=/dev/zero of="${tu}5" bs=1024 count=1024 2>&1
 sync
-umount  "${2}5" 2>&1
-partprobe "${2}"
+umount  "${tu}5" 2>&1
+partprobe "$2"
 sync
 sleep 1
-mkfs.ext4 "${2}5" 2>&1
+mkfs.ext4 "${tu}5" 2>&1
 sync
-partprobe "${2}"
+partprobe "$2"
 sleep 1
 #echo "<pre>"
 #lsblk -f "$2"
@@ -3744,11 +3865,11 @@ label="${label:0:11}"
 dosfslabel "$part" "$label"
 if [ "$disk_name_type" == "debian" ] || [ "$disk_name_type" == "torios-debian" ]
 then
- tune2fs -L "persistence" -O ^has_journal "${2}5"
+ tune2fs -L "persistence" -O ^has_journal "${tu}5"
 else
- tune2fs -L "${persist}-rw" -O ^has_journal "${2}5"
+ tune2fs -L "${persist}-rw" -O ^has_journal "${tu}5"
 fi
-partprobe "${2}"
+partprobe "$2"
 
 echo "$separator"
 echo "source=$source"
@@ -3779,18 +3900,18 @@ fi
 
 echo "item 65"
 echo "65
-# mount ${2}1 (the NTFS partition) and check that it is mounted" >> "$tailfile"
+# mount ${tu}1 (the NTFS partition) and check that it is mounted" >> "$tailfile"
 
-umount "${2}1" 2>&1
-mount "${2}1" "$usbdata" 2>&1
+umount "${tu}1" 2>&1
+mount "${tu}1" "$usbdata" 2>&1
 sync
 
-df -h | grep "${2}1"
+df -h | grep "${tu}1"
 if [ $? -ne 0 ]
 then
- /bin/echo -e "$inversvid '${2}1' could not be mounted $resetvid"
+ /bin/echo -e "$inversvid '${tu}1' could not be mounted $resetvid"
  umount /dev/loop* 2>&1
- warner "'${2}1' could not be mounted." "'${2}1' could not be mounted.
+ warner "'${tu}1' could not be mounted." "'${tu}1' could not be mounted.
 
 Poweroff and cold boot for mkusb to make persistent live drives again!"
  clear_grn "$pid" "$looper" "$targ1" "$tailfile" "$usbdata"
@@ -3855,7 +3976,7 @@ if [ $? -ne 0 ]
 then
  echo "'$targ1/boot/grub/grub.cfg': file not found"
  echo "This way to use mkusb needs 'grub.cfg' from the source iso file,"
- echo "and it is available in Ubuntu family *amd64* iso files"
+ echo "and it is available in Debian and Ubuntu family *amd64* iso files"
  clear_grn "$pid" "$looper" "$targ1" "$tailfile" "$usbdata"
  exit
 fi
@@ -3933,22 +4054,47 @@ cp "$mkusb_sdir"/restore "$targ1"
 cp "$mkusb_sdir"/backup "$usbdata"
 cp "$mkusb_sdir"/restore "$usbdata"
 
+# add files into the partition for persistence
+
+# debian: persistence.conf
+
 if [ "$disk_name_type" == "debian" ] || [ "$disk_name_type" == "torios-debian" ]
 then
  echo "creating persistence.conf for $disk_name_type"
  umount "$targ1" 2>&1
- mount "${2}5" "$targ1" 2>&1
+ mount "${tu}5" "$targ1" 2>&1
  echo / union | tee "$targ1"/persistence.conf
 fi
-umount "${2}4" 2>&1
-umount "${2}5" 2>&1
+
+# change: 'Download and install automatically' to 'Display immediately'
+
+if $chk_upgrd
+then
+ /bin/echo -e \
+ "$inversvid set security upgrade action to 'Display immediately' $resetvid"
+ umount "$targ1" 2>&1
+ mount "${tu}5" "$targ1" 2>&1
+ mkdir -p "$targ1"/upper/etc/apt/apt.conf.d/
+ echo 'APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Download-Upgradeable-Packages "0";
+APT::Periodic::AutocleanInterval "0";
+APT::Periodic::Unattended-Upgrade "0";' \
+ > "$targ1"/upper/etc/apt/apt.conf.d/10periodic
+ cp -p "$targ1"/upper/etc/apt/apt.conf.d/10periodic \
+       "$targ1"/upper/etc/apt/apt.conf.d/20auto-upgrades
+else
+ /bin/echo -e "$inversvid keep current security upgrade settings $resetvid"
+fi
+
+umount "${tu}4" 2>&1
+umount "${tu}5" 2>&1
 
 # copy the iso file
 
 which pv > /dev/null 2> /dev/null
 if [ $? -eq 0 ]
 then
- cmdline="< \"$srcorig\" pv -n | dd of=${2}4 bs=4096"
+ cmdline="< \"$srcorig\" pv -n | dd of=${tu}4 bs=4096"
 # echo "$cmdline"
  do_n_show "$cmdline"
  if [ $? -ne 0 ]
@@ -3956,8 +4102,8 @@ then
   error="$error - pv and dd: cloning"
  fi
 else
- echo "< $srcorig dd of=${2}4 bs=4096"
- < "$srcorig" dd of="${2}4" bs=4096
+ echo "< $srcorig dd of=${tu}4 bs=4096"
+ < "$srcorig" dd of="${tu}4" bs=4096
  if [ $? -ne 0 ]
  then
   error="$error - dd: cloning"
@@ -3967,7 +4113,7 @@ umount "$looper" 2>&1
 
 if [ "$error" != "" ]
 then
- echo "Maybe too small partition: '$part' or '${2}4'"
+ echo "Maybe too small partition: '$part' or '${tu}4'"
  result="'$error' could not finish"
  btitle="$version - failed installing to $2 :-)"
  echo "$result"
@@ -3975,6 +4121,8 @@ fi
 
 sync
 echo "Syncing the target device ..."
+
+# final tasks
 
 echo "90
 # final tasks" >> "$tailfile"
@@ -3995,6 +4143,10 @@ target="$2"
 
 if $tres
 then
+ if [ "${target:0:11}" == "/dev/mmcblk" ]
+ then
+  warner "Unplug and re-plug the flash card to see the correct info ..."
+ fi
  echo "<pre>"
  echo "parted -s \"$2\" print"
  parted -s "$2" print
@@ -4046,16 +4198,16 @@ then
   else
    disk_name_type="torios-precise"
   fi
+  /bin/echo -e "$inversvid $disk_name_type $resetvid"
  fi
- /bin/echo -e "$inversvid $disk_name_type $resetvid"
 fi
 
 if [ "$disk_name_type" == "" ]
 then
- tmpstr=$(find "$looper" -iname "release" -exec grep -m1 -i debian {} \; 2>/dev/null |grep -m1 Debian)
+ tmpstr=$(find "$looper" -iname "*release" -exec grep -m1 -i debian {} \; 2>/dev/null |grep -m1 -i Debian)
  if [ "$tmpstr" != "" ]
  then
-  stmp2=$(find "$looper" -iname "release"|head -n1|sed -e 's#.*dists/##' -e 's#/.*##')
+  stmp2=$(find "$looper" -iname "*release"|head -n1|sed -e 's#.*dists/##' -e 's#/.*##')
   tmpstr="$tmpstr $stmp2"
   disk_name_type="debian"
   /bin/echo -e "$inversvid $tmpstr $resetvid"
@@ -4072,7 +4224,7 @@ if [ "$disk_name_type" != "desktop" ] \
 && [ "$disk_name_type" != "debian" ]
 then
  mess1=" You are trying to install an operating system, which is not \n
- developed from 'Ubuntu desktop'. There may be problems.     "
+ developed from Debian or Ubuntu desktop. There may be problems."
  /bin/echo -e "${inversvid}${mess1/\\n}$resetvid"
  is_file "$mkusb_sdir"/maybe-problems.txt
  if [ $? -eq 0 ]
@@ -4090,6 +4242,8 @@ then
  else
   echo "Good luck :-)"
  fi
+else
+ chk4ubuntu_upgrades "$tmpstr"
 fi
 }
 
@@ -4145,11 +4299,14 @@ fi
 function chk4uefi {
 
 minrel=14.04
+mindeb=8
 
-drels=$(grep DISTRIB_RELEASE /etc/lsb-release|cut -d = -f 2)
-drels=${drels//.}
-grep -i ID=.*buntu /etc/*release > /dev/null
-if [ $? -ne 0 ] || [ $drels -lt ${minrel//.} ]
+#drels=$(grep DISTRIB_RELEASE /etc/lsb-release|cut -d = -f 2)
+#drels=${drels//.}
+drels=$(grep VERSION_ID /etc/*release|cut -d \" -f2)
+distr=$(grep ^ID= /etc/*release|cut -d = -f2)
+if ! ( [ "$distr" == "ubuntu" ] && [ $drels -ge ${minrel//.} ] \
+|| [ "$distr" == "debian" ] && [ $drels -ge ${mindeb//.} ] )
 then
  echo "$separator"
  echo "You are running the following operating system now:"
@@ -4158,15 +4315,15 @@ then
  mess1="\Z4$0\Zn\n
 \n
 might not make all systems bootable in UEFI mode from this version.
-You should \Z4work in version $minrel or newer\Zn of
-Ubuntu or an Ubuntu flavour (Kubuntu, Lubuntu, ... Xubuntu.)"
+You should \Z4work in Debian $mindeb, Ubuntu $minrel or newer\Zn
+or a corresponding Ubuntu flavour (Kubuntu, Lubuntu, ... Xubuntu.)"
  echo "$mess1"|sed -e 's/\\Z.//g' -e 's/\\n//g'
  message="$mess1\n
 \n
 Do you want to continue and maybe get a system only for BIOS mode?
 (You can also try using the boot system from the 'ISO file'.)"
  btitle="$version - Make a system only for BIOS mode?"
- mkz_msg "$message" "--title=$btitle" "--width=$(($wadd+520))" "--height=$(($hadd+280))" "--cancel-label=Quit"
+ mkz_msg "$message" "--title=$btitle" "--width=$(($wadd+600))" "--height=$(($hadd+280))" "--cancel-label=Quit"
  if [ $? -eq 1 ]
  then
   return 1
@@ -4174,6 +4331,50 @@ Do you want to continue and maybe get a system only for BIOS mode?
   echo "$separator"
  fi
 fi
+}
+
+########################################################################
+########################################################################
+
+function chk4ubuntu_upgrades {
+
+# parameter $1 is tmpstr from probe_source
+
+ename="$1"
+
+if [ "$disk_name_type" == "desktop" ]
+then
+ echo "$separator"
+ echo -n "chk4ubuntu_upgrades: "
+ heads_up="You are installing
+\n$ename"
+ mess1="\Z4${0##*/}\Zn\n
+\n
+can set the security upgrade action (the default action of the persistent
+\nlive system when security upgrades are available). This method works for
+\nUbuntu family operating systems and some 're-spins'. $heads_up
+\n\n
+This can change 'Download and install automatically' to 'Display immediately'"
+ echo "$mess1"|sed -e 's/\\Z.//g' -e 's/\\n//g'
+ message="$mess1\n
+\n
+'Display immediately' is the recommended action for persistent live drives.
+\n\n
+\Z4Is this what you want?\Zn"
+ btitle="$version - Default action for security upgrades"
+ mkz_msg "$message" "--title=$btitle" "--width=$(($wadd+560))" "--height=$(($hadd+360))" " \
+ --cancel-label=No --ok-label=Yes"
+ if [ $? -eq 0 ]
+ then
+  echo "set security upgrade action to 'Display immediately'"
+  chk_upgrd=true
+ else
+  echo "keep settings"
+ fi
+#else
+# echo "chk4ubuntu_upgrades: keep settings, not an Ubuntu family operating system"
+fi
+echo "$separator"
 }
 
 ########################################################################
@@ -4328,7 +4529,7 @@ The rest is used for storage compatible with Windows
 " \
 --add-entry="Percentage for persistence (1-100)" \
 --window-icon="/usr/share/icons/hicolor/48x48/apps/mkusb.png" \
---title="$version - Select drive space for persistence" \
+--title="$version - Select space for persistence" \
   > "$percent" 2> /dev/null & pidf=$!
 # > "$percent" 2>> "$zerrlog" & pidf=$!
 
@@ -4456,7 +4657,8 @@ fi
 
 # usage text
 
-if [ "$USER" != "root" ] || [ "$HOME" != "/root" ] || ! $ctest1 || ! $ctest2
+#if [ "$USER" != "root" ] || [ "$HOME" != "/root" ] || ! $ctest1 || ! $ctest2
+if [ "$(whoami)" != "root" ] || [ "$HOME" != "/root" ] || ! $ctest1 || ! $ctest2
 then
  if ! $ctest1 || ! $ctest2
  then
@@ -5006,6 +5208,7 @@ echo "main: usbonly=$usbonly" ##########
 if par2chk p "$@" || par2chk -p "$@" || par2chk persistent "$@"
 then
  liveonly=false
+ persnote_flag=true
 else
  liveonly=true
 fi

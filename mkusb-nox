@@ -89,9 +89,23 @@
 # 2016-05-24  sudodus  mkusb version 7.5.9.6 <---> 10.6.5 GUI version
 # 2016-05-24  sudodus  improved logic to invoke gpt_fix
 # 2016-05-24  sudodus  mkusb version 7.5.9.7 <---> 10.6.6 GUI version
+# 2016-09-14  sudodus  fix to manage flash cards seen as /dev/mmcblk0
+# 2016-09-14  sudodus  mkusb version 7.5.9.8 <---> 11.0.3 GUI version
+# 2016-09-14  sudodus  rename: mkusb 7.5.9.8 ----> mkusb-nox 11.0.3
+# 2016-09-14  sudodus  mkusb-nox version 11.0.{3,4}
+# 2016-09-17  sudodus  lsblk -db ...: removed error output when no mmkblk?
+# 2016-09-19  sudodus  mkusb-nox version 11.0.{5,6}
+# 2016-09-20  sudodus  fix for opensuse 42.1:
+#                      disk/by-id/ 'scsi' accepted because 'usb' not used
+# 2016-09-20  sudodus  mkusb-nox version 11.0.{7,8}
+# 2016-09-28  sudodus  added feature: make USB install drive for Windows
+# 2016-09-28  sudodus  mkusb-nox version 11.1.0
+# 2016-10-06  sudodus  debian: replaced rsync (not default) with cp and
+#                      removed 'insmod' lines with grep -v for grub.cfg
+#                      put debian 'on par' with ubuntu in text strings
+# 2016-10-06  sudodus  mkusb-nox version 11.1.{1,2}
 
-
-version="7.5.9.7 <---> 10.6.6 GUI version"
+version="mkusb-nox 11.1.2"
 
 usbonly=true
 startdir="$PWD"
@@ -100,6 +114,8 @@ warnstr=
 quitstr=
 inversvid="\0033[7m"
 resetvid="\0033[0m"
+disk_name_type=
+distr=
 
 #-----------------------------------------------------------------------------
 
@@ -111,8 +127,16 @@ cnt1=0
 cnt2=0
 
 tmpfil=$(mktemp)
-ls -l /dev/disk/by-id| grep [a-z]$|tr -s ' ' ' '|cut -d ' ' -f 9,11 \
-|sort -k2|grep -e \^a -e \^u|sed 's#../..#/dev#' > "$tmpfil"
+ls -l /dev/disk/by-id| grep -e [a-z]$ -e mmcblk[0-9]$|tr -s ' ' ' '|cut -d ' ' -f 9,11 \
+|sort -k2|grep -e \^a -e \^u -e \^m|sed 's#../..#/dev#' > "$tmpfil"
+
+distr=$(grep -i ^ID= /etc/*release|sed s/.*ID=//)
+#echo "***** distr=$distr *****"
+if [ "$distr" == "opensuse" ]
+then
+ ls -l /dev/disk/by-id| grep -e [a-z]$ -e mmcblk[0-9]$|tr -s ' ' ' '|cut -d ' ' -f 9,11 \
+ |sort -k2|grep -e \^a -e \^u -e \^m -e \^scsi-S|grep -v \^scsi-SATA|sed 's#../..#/dev#' > "$tmpfil"
+fi
 
 #cat "$tmpfil"
 
@@ -125,7 +149,7 @@ nam1[$cnt1]=${nam1[$cnt1]:0:36}
 # /bin/echo -e "${nam1[$cnt1]}\0011${dev1[$cnt1]}"
 done < "$tmpfil"
 
-lsblk -db|grep disk|tr -s ' ' ' '| cut -d ' ' -f1-4 |sort > "$tmpfil"
+lsblk -db /dev/[^f]d? /dev/mmcblk? 2>&1 | sed '/^lsblk: \/dev\/mmcblk?:/ d' |grep disk|tr -s ' ' ' '| cut -d ' ' -f1-4 |sort > "$tmpfil"
 
 while read device dum1 dum2 bytesize
 do
@@ -185,9 +209,17 @@ do
   if [ "$1" == "true" ]
   then
    usbstring="${string/Name\:\ usb\-/USB: }"
+   mmcstring="${string/Name\:\ mmc\-/MMC: }"
+   scsistring="${string/Name\:\ scsi\-S/SCSI: }"
    if [ "$usbstring" != "$string" ]
    then
     /bin/echo -e "$usbstring"
+   elif [ "$mmcstring" != "$string" ]
+   then
+    /bin/echo -e "$mmcstring"
+   elif [ "$scsistring" != "$string" ]
+   then
+    /bin/echo -e "$scsistring"
    fi
   else
     /bin/echo -e "$string"
@@ -258,6 +290,8 @@ function mkcmd_runcmd {
 # make command and run command, 'here we go'
 
  LANG=C
+ curdir="$(pwd)"
+ ruler='-------20%-------40%-------60%-------80%------100% progress'
 
  if [ "$target" == "" ]
  then
@@ -267,16 +301,14 @@ function mkcmd_runcmd {
  then
   echo "No source"
   exit
- elif [ "$1" == "restore" ]
+ elif [ "$1" == "restore" ]                                # restore
  then
   swapoff "$target"* 2>/dev/null
   sync
   doing_this="Restoring $target to a storage device ... :"
-#  LANG="$curlang"
   gpt_zap "$target"
   mk_msdos "$target"
   part_info "$target"
-#  LANG=C
   if [ $? -eq 0 ]
   then
    result="Done :-)"
@@ -284,7 +316,150 @@ function mkcmd_runcmd {
    result="Failed :-("
   fi
   exit
- else
+ elif [ "$disk_name_type" == "microsoft-windows" ] \
+   || [ "${source/.tar}.tar" == "$source" ]                # windows
+ then
+  echo "source=$source"
+  if [ "${source/.tar}.tar" == "$source" ]
+  then
+   echo "tar"
+   tarfil="$curdir"/"$source"
+  else
+   echo "iso"
+   tarfil="$curdir"/"${source/.iso}.tar"
+  fi
+  result=
+  swapoff "$target"* 2>/dev/null
+  sync
+  doing_this="Installing Windows to $target ... :"
+  gpt_zap "$target"
+  mk_msdos "$target" WIN-INSTALL
+  if [ $? -ne 0 ]; then result="$result mk_msdos:error"; fi
+  part_info "$target"
+  tsrc=$(mktemp -d)
+  tprt=$(mktemp -d)
+#  pwd
+#  echo "$source"
+#  echo "$tarfil"
+
+  if test -f "$tarfil"
+  then
+   echo "Using the mkusb tarfile
+$tarfil
+
+It is convenient to keep both the isofile and tarfile. Remove one of them
+afterwards if you want to save space:
+- keep the tarfile to create a USB boot drive
+- keep the isofile to create a DVD boot disk (or create another tarfile)"
+  else
+   fresiz=$(df -m .|tail -n1|tr -s ' ' ' '|cut -d ' ' -f4)
+   if [ $fresiz -lt 5120 ]
+   then
+    read -p "
+--------------------------------------------------------------------------
+Not enough space for a tarfile to be written where the iso file is stored.
+Enter a directory in a partition/drive with > 5 GiB free: " tardir
+   else
+    tardir="$curdir"
+   fi
+   tarfil="$tardir"/"${source/.iso}.tar"
+   ssize="$(wc -c "$source")"
+   ssize="${ssize%% *}"
+   rstep=$(( $ssize/500000 ))
+   mount -o loop "$source" "$tsrc"
+   cd "$tsrc"
+   echo "Creating an intermediate mkusb tarfile for Windows:
+- keep the tarfile to create a USB boot drive
+- keep the isofile to create a DVD boot disk (or create another tarfile)"
+   echo -e "$inversvid Extracting from iso-file to tarfile (a few minutes) ... $resetvid"
+   echo "$ruler"
+   tar --checkpoint=."$rstep" --hard-dereference -chf "$tarfil" . \
+    2> "$curdir/mkusb-tar.log"                                      # tar #####
+   if [ $? -ne 0 ]; then result="$result 'tar isofile-to-tarfile':error";fi
+   echo "   finished"
+   cd "$curdir"
+   umount "$tsrc"
+  fi
+
+  if [ "${target:0:11}" == "/dev/mmcblk" ]
+  then
+    mount "${target}p1" "$tprt"
+  else
+    mount "${target}1" "$tprt"
+  fi
+#  ls -l "${target}1"
+#  ls -ld "$tprt"
+  sync
+  sleep 1.0
+  echo -e "$inversvid Extracting from tarfile to target device (several minutes) ... $resetvid"
+  ssize="$(wc -c "$tarfil")"
+  ssize="${ssize%% *}"
+  rstep=$(( $ssize/500000 ))
+
+  cd "$tprt"
+  echo "$ruler"
+  tar --checkpoint=."$rstep" --no-same-owner --no-same-permissions \
+  --hard-dereference -xhf "$tarfil" 2>> "$curdir/mkusb-tar.log"      # tar #####
+  if [ $? -ne 0 ]; then result="$result 'tar tarfile-to-target':error";fi
+  echo "   finished"
+  cd "$curdir"
+  if test -s "$curdir/mkusb-tar.log"
+  then
+   read -p "Check errors logged by tar? (y/N) " ans
+   if [ "$ans" == "y" ]
+   then
+    more "$curdir/mkusb-tar.log"
+   fi
+   echo -e "This method is verified with Windows 7 - 10.
+There are errors when using some iso files. 
+$inversvid The target device might work anyway. Please try! $resetvid"
+  else
+   rm "$curdir/mkusb-tar.log"
+  fi
+
+##     rsync -rLtD --info=progress2 "$tsrc"/ "$tprt"
+#      rsync -rLtD --info=progress2 /mnt/sd2/ "$tprt"  # read from partition ***** works *****
+#
+# rsync and cp fail to copy the directory tree with files recursively from loop mount
+
+  sleep 1.0
+  sync
+  sleep 1.0
+
+  echo -n "Bootloader: "
+  if [ "$distr" == "opensuse" ]
+  then
+   grub2-install --force --target=i386-pc --boot-directory="$tprt/boot" "$target"
+  else
+   grub-install --force --target=i386-pc --boot-directory="$tprt/boot" "$target"
+  fi
+  if [ $? -ne 0 ]; then result="$result grub-install:error"; fi
+  sync
+  if [ "$distr" == "opensuse" ]
+  then
+   cp -v /usr/share/mkusb/grub-win-install.cfg "$tprt"/boot/grub2/grub.cfg
+  elif [ "$distr" == "debian" ]
+  then
+   grep -v insmod /usr/share/mkusb/grub-win-install.cfg > "$tprt"/boot/grub/grub.cfg
+  else
+   cp -v /usr/share/mkusb/grub-win-install.cfg "$tprt"/boot/grub/grub.cfg
+  fi
+  if [ $? -ne 0 ]; then result="$result cp:error"; fi
+  sync
+  umount "$tprt"
+  if [ $? -ne 0 ]; then result="$result umount:error"; fi
+  sleep 1.0
+  sync
+  rmdir "$tsrc" "$tprt"
+  if [ $? -ne 0 ]; then result="$result rmdir:error"; fi
+  if [ "$result" == "" ]
+  then
+   echo "Done :-)"
+  else
+   echo "mkcmd_runcmd: $result. Failed."
+  fi
+  exit
+ else                             # here we go to built the command line
   swapoff "$target"* 2>/dev/null
   sync
 
@@ -397,7 +572,7 @@ function mkcmd_runcmd {
   elif [ "$1" == "wipe-whole-device" ]
   then
    result="Done, but you should also
-check for the line 'dd: writing '$target': No space left on device',
+check for the line 'dd: error writing '$target': No space left on device',
 which means that the whole device is wiped. (Look a few lines above ^) "
   else
    result="Failed :-("
@@ -416,8 +591,13 @@ function mk_msdos {
 
 # make an MSDOS partition table and a FAT32 file system
 
+success=true
 target="$1"
-read -p "Enter label for the partition (max 11 *standard* ascii characters) " label1
+label1="$2"
+if [ "$label1" == "" ]
+then
+ read -p "Enter label for the partition (max 11 *standard* ascii characters) " label1
+fi
 label1="${label1:0:11}"
 label1="${label1^^}"
 #echo "Label (name) for the FAT32 partition: $label1"
@@ -430,28 +610,56 @@ then
  echo "mk_msdos: could not unmount a partition on the target device"
  exit
 fi
+
 echo "------------------------------------------------------------"
 dd if=/dev/zero of="$target" bs=1024 count=1024 2>&1
+sleep 0.5
 parted -s "$target" mklabel msdos
+sleep 0.5
+if [ "$disk_name_type" == "microsoft-windows" ]
+then
+ seker=$(sudo parted -ms "$target" unit s print|grep "$target"|cut -d : -f 2|sed 's/s//')
+ buser=$(sudo parted -ms "$target" unit s print|grep "$target"|cut -d : -f 5)
+# echo "seker=$seker ; buser=$buser"
+ if [ "$seker" != "" ] && [ "$buser" != "" ]
+ then
+  cnter=$(( 1024*1024 / $buser ))
+  echo dd if=/dev/zero of="${target}" bs=$buser count=$cnter seek=$(($cnter))
+       dd if=/dev/zero of="${target}" bs=$buser count=$cnter seek=$(($cnter))
+  echo dd if=/dev/zero of="${target}" bs=$buser count=$cnter seek=$(($seker -$cnter))
+       dd if=/dev/zero of="${target}" bs=$buser count=$cnter seek=$(($seker -$cnter))
+  sync
+ else
+  success=false
+  echo "Failed to find sectors and/or units for wiping the end of target device"
+ fi
+fi
 sleep 0.5
 parted -s "$target" mkpart primary 1048576b 100%
 sleep 0.5
 parted -s "$target" set 1 boot on  # set boot flag on partition 1
 sleep 0.5
-mkfs.vfat -v -F 32 -n "$label1" "${target}1"
-if [ $? -eq 0 ]
+if [ "${target:0:11}" == "/dev/mmcblk" ]
 then
- success=true
+ mkfs.vfat -v -F 32 -n "$label1" "${target}p1"
 else
+ mkfs.vfat -v -F 32 -n "$label1" "${target}1"
+fi
+if [ $? -ne 0 ]
+then
  success=false
 fi
 sleep 0.5
 sync
+sudo blkid -c /dev/null "${target}"* # > /dev/null 2>&1
+sleep 0.5
+
 if $success
 then
  /bin/echo -e "$inversvid created MSDOS partition table and FAT file system $resetvid"
 else
  /bin/echo -e "$inversvid mk_msdos: could not create MSDOS partition table and FAT file system $resetvid"
+ return 1
 fi
 }
 #-----------------------------------------------------------------------------
@@ -461,6 +669,13 @@ function part_info {
 target=$1
 sync
 sleep 0.5
+if [ "${target:0:11}" == "/dev/mmcblk" ]
+then
+ read -p "Unplug and re-plug the flash card to see the correct info ... and press Enter "
+#elif [ "$disk_name_type" == "microsoft-windows" ]
+#then
+# read -p "Unplug and re-plug the target drive to see the correct info ... and press Enter "
+fi
 blkid -c /dev/null "${target}?" > /dev/null
 sleep 0.5
 partinfo=$(parted -s "$target" print; \
@@ -766,6 +981,16 @@ then
  disk_name_type="desktop"
  string1="$tmpstr"
 fi
+( test -f "$iso"/bootmgr || test -f "$iso"/bootmgr.efi ) && test -f "$iso"/setup.exe 
+if [ $? -eq 0 ]
+then
+ disk_name_type=$(find "$iso" -iname "*microsoft-windows*"|head -n1)
+ if [ "$disk_name_type" != "" ]
+ then
+   disk_name_type="microsoft-windows"
+   string1="windows"
+ fi
+fi
 
 echo "disk_name_type=$disk_name_type"
 # echo "string1=$string1"
@@ -986,7 +1211,7 @@ LANG=C
 
 if [ "$1" == "-v" ]
 then
- echo "mkusb version $version"
+ echo "$version"
  exit
 fi 
 
@@ -1005,10 +1230,9 @@ then
   echo "sudo $0 file.img"
   echo "sudo $0 file.img.gz"
   echo "sudo $0 file.img.xz"
+  echo "sudo $0 file.tar    # if an mkusb tarfile for Windows"
   echo "---- Install from 'file.img.xz', show all mass storage devices"
   echo "sudo $0 file.img.xz all"
-#  echo "---- Install from 'file.img.xz', show all ..., no help text"
-#  echo "sudo $0 file.img.xz anh"
   echo "---- Clone a device (typically a CD drive or USB drive) -------------"
   echo "sudo $0 /dev/sr0    # example of CD drive"
   echo "---- Wipe the USB device (may take long time) -----------------------"
@@ -1033,7 +1257,8 @@ fi
 if [ "${1/.iso}.iso" != "$1" ] && \
      [ "${1/.img}.img" != "$1" ] && \
      [ "${1/.img.gz}.img.gz" != "$1" ] && \
-     [ "${1/.img.xz}.img.xz" != "$1" ]
+     [ "${1/.img.xz}.img.xz" != "$1" ] && \
+     [ "${1/.tar}.tar" != "$1" ]
 then
  if [ "$1" == "wipe-whole-device" ] || [ "$1" == "/dev/zero" ]
  then
@@ -1173,12 +1398,28 @@ else
   echo "Do you want to clone a device (typically a CD drive to a USB drive)? (y/n)"
  elif [ "${1/.iso}.iso" == "$1" ]
  then
-  echo "$string1 _not_ in USB device"
-  echo "Do you want to make a new one? (y/n)"
+  if [ "$disk_name_type" != "microsoft-windows" ]
+  then
+   echo "$string1 _not_ in USB device"
+   echo "Do you want to make a new one? (y/n)"
+  else
+   echo "Do you want to make a USB boot device with Windows? (y/n)"
+  fi
  elif [ "${1/.img}.img" == "$1" ]
  then
-  echo "Do you want to clone $1 to a mass storage device (typically USB drive) (y/n)?"
-elif [ "${1/.img.gz}.img.gz" == "$1" ]
+  echo "Do you want to clone $1 to a mass storage device (typically USB drive)? (y/n)"
+ elif [ "${1/.tar}.tar" == "$1" ]
+ then
+  tar -tvf "$source" | grep -m1 'microsoft-windows' > /dev/null
+  if [ $? -eq 0 ]
+  then
+   disk_name_type="microsoft-windows"
+   echo "Do you want to make a USB boot device with Windows? (y/n)"
+  else
+   echo "Bad choice -- exit"
+   exit
+  fi
+ elif [ "${1/.img.gz}.img.gz" == "$1" ]
  then
   echo "Do you want to clone $1 to a mass storage device (typically USB drive)? (y/n)"
  elif [ "${1/.img.xz}.img.xz" == "$1" ]
@@ -1193,7 +1434,7 @@ elif [ "${1/.img.gz}.img.gz" == "$1" ]
  then
 
 # write help text inactivated, because this version is for advanced users
-# most users are expected to use mkusb versions 8+ (with GUI)
+# most users are expected to use mkusb versions 9+ (with GUI)
 #
 #  if [ "$2" != "anh" ]
 #  ...
